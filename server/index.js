@@ -14,6 +14,7 @@ import { errorHandler, notFoundHandler } from './middlewares/error.middleware.js
 
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
+import conversationRoutes from './routes/conversation.routes.js';
 
 const require = createRequire(import.meta.url);
 const { version: appVersion } = require('./package.json');
@@ -63,6 +64,7 @@ app.get('/api/health', (_req, res) => {
 // 9.1) Feature Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/conversations', conversationRoutes);
 
 // 9.2) Welcome page — chat-themed landing.
 const docsRelaxedHelmet = helmet({ contentSecurityPolicy: false });
