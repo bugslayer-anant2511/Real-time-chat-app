@@ -12,6 +12,9 @@ import { sanitizeRequest } from './middlewares/sanitize.middleware.js';
 import { globalLimiter } from './middlewares/rateLimiters.js';
 import { errorHandler, notFoundHandler } from './middlewares/error.middleware.js';
 
+import authRoutes from './routes/auth.routes.js';
+import userRoutes from './routes/user.routes.js';
+
 const require = createRequire(import.meta.url);
 const { version: appVersion } = require('./package.json');
 
@@ -56,6 +59,10 @@ app.use('/api', globalLimiter);
 app.get('/api/health', (_req, res) => {
   res.status(200).json({ status: 'ok', uptime: process.uptime() });
 });
+
+// 9.1) Feature Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 
 // 9.2) Welcome page — chat-themed landing.
 const docsRelaxedHelmet = helmet({ contentSecurityPolicy: false });
