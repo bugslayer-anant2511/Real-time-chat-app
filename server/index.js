@@ -19,6 +19,7 @@ import messageRouter, { conversationMessageRouter } from './routes/message.route
 import uploadRoutes from './routes/upload.routes.js';
 import reportRoutes from './routes/report.routes.js';
 import notificationRoutes from './routes/notification.routes.js';
+import adminRoutes from './routes/admin.routes.js';
 
 const require = createRequire(import.meta.url);
 const { version: appVersion } = require('./package.json');
@@ -74,6 +75,7 @@ app.use('/api/messages', messageRouter);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/admin', adminRoutes);
 
 // 9.2) Welcome page — chat-themed landing.
 const docsRelaxedHelmet = helmet({ contentSecurityPolicy: false });
