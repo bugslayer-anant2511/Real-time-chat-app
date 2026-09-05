@@ -16,6 +16,9 @@ import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
 import conversationRoutes from './routes/conversation.routes.js';
 import messageRouter, { conversationMessageRouter } from './routes/message.routes.js';
+import uploadRoutes from './routes/upload.routes.js';
+import reportRoutes from './routes/report.routes.js';
+import notificationRoutes from './routes/notification.routes.js';
 
 const require = createRequire(import.meta.url);
 const { version: appVersion } = require('./package.json');
@@ -68,6 +71,9 @@ app.use('/api/users', userRoutes);
 app.use('/api/conversations', conversationRoutes);
 app.use('/api/conversations/:id/messages', conversationMessageRouter);
 app.use('/api/messages', messageRouter);
+app.use('/api/upload', uploadRoutes);
+app.use('/api/reports', reportRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // 9.2) Welcome page — chat-themed landing.
 const docsRelaxedHelmet = helmet({ contentSecurityPolicy: false });
