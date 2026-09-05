@@ -20,6 +20,8 @@ import uploadRoutes from './routes/upload.routes.js';
 import reportRoutes from './routes/report.routes.js';
 import notificationRoutes from './routes/notification.routes.js';
 import adminRoutes from './routes/admin.routes.js';
+import { createSocketServer } from './config/socket.js';
+import { registerSocketHandlers } from './sockets/index.js';
 
 const require = createRequire(import.meta.url);
 const { version: appVersion } = require('./package.json');
@@ -89,6 +91,10 @@ app.use(errorHandler);
 
 const httpServer = http.createServer(app);
 
+const io = createSocketServer(httpServer, env);
+registerSocketHandlers(io);
+app.set('io', io);
+
 const start = async () => {
   await connectDB();
   httpServer.listen(env.PORT, () => {
@@ -100,7 +106,9 @@ start();
 
 const shutdown = (signal) => {
   console.log(`[server] received ${signal}, shutting down...`);
-  httpServer.close(() => process.exit(0));
+  io.close(() => {
+    httpServer.close(() => process.exit(0));
+  });
   setTimeout(() => process.exit(1), 10_000).unref();
 };
 process.on('SIGINT', () => shutdown('SIGINT'));
