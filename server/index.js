@@ -22,6 +22,8 @@ import notificationRoutes from './routes/notification.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import { createSocketServer } from './config/socket.js';
 import { registerSocketHandlers } from './sockets/index.js';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec, swaggerUiOptions } from './config/swagger.js';
 
 const require = createRequire(import.meta.url);
 const { version: appVersion } = require('./package.json');
@@ -81,6 +83,18 @@ app.use('/api/admin', adminRoutes);
 
 // 9.2) Welcome page — chat-themed landing.
 const docsRelaxedHelmet = helmet({ contentSecurityPolicy: false });
+
+app.get('/api-docs.json', docsRelaxedHelmet, (_req, res) => {
+  res.status(200).json(swaggerSpec);
+});
+
+app.use(
+  '/api-docs',
+  docsRelaxedHelmet,
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, swaggerUiOptions),
+);
+
 app.get('/', docsRelaxedHelmet, (_req, res) => {
   res.status(200).type('html').send(renderWelcomePage(appVersion));
 });
