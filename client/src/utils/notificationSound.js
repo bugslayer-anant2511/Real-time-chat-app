@@ -22,10 +22,10 @@ export const playNotificationSound = () => {
     const result = audio.play();
     if (result && typeof result.catch === 'function') {
       result.catch(() => {
-        // Autoplay blocked
+        // Ignored
       });
     }
-  } catch {
-    // Synchronously thrown exception
+  } catch (err) {
+    // Ignored
   }
 };
