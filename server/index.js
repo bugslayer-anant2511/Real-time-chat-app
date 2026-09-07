@@ -338,7 +338,7 @@ const renderWelcomePage = (version) => `<!DOCTYPE html>
       <span></span><span></span><span></span>
     </div>
 
-    <p class="version">v\${version}</p>
+    <p class="version">v${version}</p>
 
     <p class="lead">
       Production-grade real-time messaging backend powered by
@@ -360,4 +360,4 @@ const renderWelcomePage = (version) => `<!DOCTYPE html>
     </footer>
   </main>
 </body>
-</html>\`;
+</html>`;
