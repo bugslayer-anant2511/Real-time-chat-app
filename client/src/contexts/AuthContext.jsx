@@ -138,7 +138,7 @@ export const AuthProvider = ({ children }) => {
           setToken(null);
         }
       } finally {
-        if (!cancelled) setLoading(false);
+        setLoading(false);
       }
     })();
 
