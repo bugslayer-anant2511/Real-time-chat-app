@@ -12,6 +12,9 @@ export default defineConfig({
     port: 4173,
   },
   build: {
+    // Split the heaviest third-party libs into their own chunks so the
+    // initial JS payload stays well below the 500 kB warning threshold
+    // and long-tail caches stay stable across app code changes.
     rollupOptions: {
       output: {
         manualChunks(id) {
