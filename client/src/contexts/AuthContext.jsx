@@ -118,11 +118,9 @@ export const AuthProvider = ({ children }) => {
       return;
     }
 
-    let cancelled = false;
     (async () => {
       try {
         const result = await authService.getMe();
-        if (cancelled) return;
         const nextUser = result?.data?.user ?? null;
         if (nextUser) {
           setUser(nextUser);
@@ -131,7 +129,6 @@ export const AuthProvider = ({ children }) => {
           setToken(null);
         }
       } catch (error) {
-        if (cancelled) return;
         const status = error?.response?.status;
         if (status === 401 || status === 403) {
           writeToken(null);
@@ -141,10 +138,6 @@ export const AuthProvider = ({ children }) => {
         setLoading(false);
       }
     })();
-
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
   useEffect(() => {
