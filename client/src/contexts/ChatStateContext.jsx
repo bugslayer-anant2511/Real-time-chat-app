@@ -14,8 +14,8 @@ import { useAuth } from './AuthContext.jsx';
 const ChatStateContext = createContext(null);
 
 const sortByRecency = (a, b) => {
-  const ta = new Date(a.updatedAt ?? a.lastMessageAt ?? 0).getTime();
-  const tb = new Date(b.updatedAt ?? b.lastMessageAt ?? 0).getTime();
+  const ta = new Date(a.lastMessage?.createdAt ?? a.createdAt ?? 0).getTime();
+  const tb = new Date(b.lastMessage?.createdAt ?? b.createdAt ?? 0).getTime();
   return tb - ta;
 };
 
