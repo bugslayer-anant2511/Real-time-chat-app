@@ -1,9 +1,13 @@
 import rateLimit from 'express-rate-limit';
+import { env } from '../config/env.js';
+
+const isDev = env.NODE_ENV === 'development' || env.NODE_ENV === 'test';
 
 const baseOptions = {
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   message: { success: false, message: 'Too many requests, please try again later.' },
+  skip: () => isDev,
 };
 
 const minutes = (n) => n * 60 * 1000;
