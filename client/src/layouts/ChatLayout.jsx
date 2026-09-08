@@ -27,17 +27,28 @@ const ChatComposers = () => {
 
 const ConnectionStrip = () => {
   const { isConnected } = useSocket();
+  const [showReconnecting, setShowReconnecting] = useState(false);
   const [longDisconnect, setLongDisconnect] = useState(false);
 
   useEffect(() => {
     if (isConnected) {
+      setShowReconnecting(false);
       setLongDisconnect(false);
       return undefined;
     }
-    const timer = window.setTimeout(() => {
+
+    const reconnectTimer = window.setTimeout(() => {
+      setShowReconnecting(true);
+    }, 1500);
+
+    const longDisconnectTimer = window.setTimeout(() => {
       setLongDisconnect(true);
     }, LONG_DISCONNECT_MS);
-    return () => window.clearTimeout(timer);
+
+    return () => {
+      window.clearTimeout(reconnectTimer);
+      window.clearTimeout(longDisconnectTimer);
+    };
   }, [isConnected]);
 
   if (isConnected) return null;
@@ -54,6 +65,8 @@ const ConnectionStrip = () => {
       </div>
     );
   }
+
+  if (!showReconnecting) return null;
 
   return (
     <div
