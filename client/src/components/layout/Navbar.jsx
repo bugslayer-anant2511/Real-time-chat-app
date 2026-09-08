@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, NavLink, useLocation } from 'react-router-dom';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LogOut,
   Menu,
@@ -8,6 +8,7 @@ import {
   Shield,
   User as UserIcon,
   X,
+  ArrowLeft,
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -27,6 +28,7 @@ const navLinkClass = ({ isActive }) =>
 const Navbar = () => {
   const { user, isAdmin, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -58,17 +60,29 @@ const Navbar = () => {
     <>
       <header className="sticky top-0 z-30 w-full border-b border-gray-200 bg-white/80 backdrop-blur dark:border-gray-800 dark:bg-gray-950/80">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
-          <Link
-            to="/chat"
-            className="flex items-center gap-2 text-brand-600 transition-opacity hover:opacity-80 dark:text-brand-400"
-          >
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-white shadow-sm">
-              <MessageCircle className="h-4 w-4" aria-hidden="true" />
-            </span>
-            <span className="text-base font-semibold tracking-tight text-gray-900 dark:text-white">
-              Chat App
-            </span>
-          </Link>
+          <div className="flex items-center gap-2">
+            {location.pathname !== '/chat' && (
+              <button
+                type="button"
+                onClick={() => navigate('/chat')}
+                className="flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-600 shadow-sm transition-colors hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+                aria-label="Go back to chat"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </button>
+            )}
+            <Link
+              to="/chat"
+              className="flex items-center gap-2 text-brand-600 transition-opacity hover:opacity-80 dark:text-brand-400"
+            >
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-white shadow-sm">
+                <MessageCircle className="h-4 w-4" aria-hidden="true" />
+              </span>
+              <span className="text-base font-semibold tracking-tight text-gray-900 dark:text-white">
+                Chat App
+              </span>
+            </Link>
+          </div>
 
           <nav className="hidden items-center gap-1 md:flex" aria-label="Primary">
             <NavLink to="/chat" className={navLinkClass} end={false}>

@@ -18,7 +18,6 @@ import {
 
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import { useChatState } from '../../contexts/ChatStateContext.jsx';
-import { useNotifications } from '../../contexts/NotificationContext.jsx';
 import { useSocket } from '../../contexts/SocketContext.jsx';
 import { useDebounce } from '../../hooks/useDebounce.js';
 import { useOnClickOutside } from '../../hooks/useOnClickOutside.js';
@@ -49,7 +48,6 @@ const getOtherParticipant = (conversation, currentUserId) => {
 const Sidebar = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const { unreadCount } = useNotifications();
   const { socket, onlineUserIds } = useSocket();
   const {
     conversations,
@@ -63,6 +61,10 @@ const Sidebar = () => {
     openNewChat,
     openNewGroup,
   } = useChatState();
+
+  const totalUnreadChats = useMemo(() => {
+    return conversations.reduce((sum, c) => sum + (Number(c.unreadCount) || 0), 0);
+  }, [conversations]);
 
   const activeMatch = useMatch('/chat/:conversationId');
   const activeConversationId = activeMatch?.params?.conversationId ?? null;
@@ -439,8 +441,8 @@ const Sidebar = () => {
           <span className="text-sm font-semibold tracking-tight text-gray-900 dark:text-white">
             Chats
           </span>
-          {unreadCount > 0 ? (
-            <Badge count={unreadCount} variant="danger" className="ml-1" />
+          {totalUnreadChats > 0 ? (
+            <Badge count={totalUnreadChats} variant="danger" className="ml-1" />
           ) : null}
         </Link>
 
