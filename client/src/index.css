@@ -16,6 +16,7 @@
   --color-brand-700: #1d4ed8;
   --color-brand-800: #1e40af;
   --color-brand-900: #1e3a8a;
+  --color-brand-950: #172554;
 }
 
 /* Tailwind v4 dark mode is opt-in. We register a custom variant so any

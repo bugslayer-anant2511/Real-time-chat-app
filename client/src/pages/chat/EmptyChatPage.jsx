@@ -22,7 +22,7 @@ const EmptyChatPage = () => {
           <button
             type="button"
             onClick={openNewChat}
-            className="inline-flex items-center gap-1.5 rounded-md bg-brand-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-700 dark:bg-brand-50 dark:hover:bg-brand-400"
+            className="inline-flex items-center gap-1.5 rounded-md bg-brand-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-700 dark:bg-brand-500 dark:hover:bg-brand-400"
           >
             <Plus className="h-4 w-4" aria-hidden="true" />
             New chat

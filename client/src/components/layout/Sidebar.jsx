@@ -451,7 +451,7 @@ const Sidebar = () => {
               onClick={() => setNewMenuOpen((v) => !v)}
               aria-haspopup="menu"
               aria-expanded={newMenuOpen}
-              className="flex items-center gap-1 rounded-md bg-brand-600 px-2 py-1.5 text-xs font-medium text-white transition-colors hover:bg-brand-700 dark:bg-brand-50 dark:hover:bg-brand-400"
+              className="flex items-center gap-1 rounded-md bg-brand-600 px-2 py-1.5 text-xs font-medium text-white transition-colors hover:bg-brand-700 dark:bg-brand-500 dark:hover:bg-brand-400"
             >
               <Plus className="h-3.5 w-3.5" aria-hidden="true" />
               <span>New</span>
