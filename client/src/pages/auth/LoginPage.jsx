@@ -7,7 +7,7 @@ import Spinner from '../../components/common/Spinner.jsx';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import { ROUTES } from '../../utils/constants.js';
 
-const GENERIC_AUTH_ERROR = 'Invalid email or password';
+const GENERIC_AUTH_ERROR = 'Invalid email/username or password';
 
 const LoginPage = () => {
   const { login } = useAuth();
@@ -36,7 +36,7 @@ const LoginPage = () => {
 
   const validateClient = () => {
     const next = {};
-    if (!email.trim()) next.email = 'Email is required';
+    if (!email.trim()) next.email = 'Email or Username is required';
     if (!password) next.password = 'Password is required';
     return next;
   };
@@ -134,7 +134,7 @@ const LoginPage = () => {
             htmlFor={emailId}
             className="block text-sm font-medium text-gray-800 dark:text-gray-200"
           >
-            Email
+            Email or Username
           </label>
           <div className="relative">
             <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
@@ -142,7 +142,7 @@ const LoginPage = () => {
             </span>
             <input
               id={emailId}
-              type="email"
+              type="text"
               name="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -152,7 +152,7 @@ const LoginPage = () => {
               disabled={submitting}
               aria-invalid={Boolean(fieldErrors.email)}
               aria-describedby={fieldErrors.email ? `${emailId}-err` : undefined}
-              placeholder="you@example.com"
+              placeholder="you@example.com or username"
               className={`${inputClass('email')} pl-9`}
             />
           </div>

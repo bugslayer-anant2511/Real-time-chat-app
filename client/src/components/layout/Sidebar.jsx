@@ -63,7 +63,7 @@ const Sidebar = () => {
   } = useChatState();
 
   const totalUnreadChats = useMemo(() => {
-    return conversations.reduce((sum, c) => sum + (Number(c.unreadCount) || 0), 0);
+    return conversations.filter((c) => (Number(c.unreadCount) || 0) > 0).length;
   }, [conversations]);
 
   const activeMatch = useMatch('/chat/:conversationId');

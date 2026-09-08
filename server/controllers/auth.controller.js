@@ -42,11 +42,17 @@ export const register = asyncHandler(async (req, res) => {
 export const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
-  const user = await User.findOne({ email }).select('+password');
+  const identifier = String(email || '').trim().toLowerCase();
+  const user = await User.findOne({
+    $or: [
+      { email: identifier },
+      { username: identifier },
+    ],
+  }).select('+password');
   const passwordOk = user ? await user.comparePassword(password) : false;
 
   if (!user || !passwordOk) {
-    throw ApiError.unauthorized('Invalid email or password');
+    throw ApiError.unauthorized('Invalid email, username or password');
   }
 
   if (user.status === USER_STATUS.SUSPENDED) {
