@@ -310,20 +310,46 @@ const ChatPage = () => {
 
   const handleOptimisticAdd = useCallback((message) => {
     if (!message || !message.clientTempId) return;
+
+    // Optimistically update conversation position and lastMessage in the sidebar list
+    upsertConversation({
+      _id: conversationId,
+      lastMessage: {
+        text: message.type === 'image' ? '[image]' : (message.text ?? ''),
+        sender: message.sender ?? null,
+        type: message.type ?? 'text',
+        createdAt: message.createdAt ?? new Date().toISOString(),
+      },
+      updatedAt: message.createdAt ?? new Date().toISOString(),
+    });
+
     setMessages((prev) => {
       const filtered = prev.filter(
         (m) => m.clientTempId !== message.clientTempId,
       );
       return [...filtered, message];
     });
-  }, []);
+  }, [conversationId, upsertConversation]);
 
   const handleOptimisticUpdate = useCallback((clientTempId, patch) => {
     if (!clientTempId || !patch) return;
+
+    // Update conversation order/lastMessage in sidebar with final server message details
+    upsertConversation({
+      _id: conversationId,
+      lastMessage: {
+        text: patch.type === 'image' ? '[image]' : (patch.text ?? ''),
+        sender: patch.sender ?? null,
+        type: patch.type ?? 'text',
+        createdAt: patch.createdAt ?? new Date().toISOString(),
+      },
+      updatedAt: patch.createdAt ?? new Date().toISOString(),
+    });
+
     setMessages((prev) =>
       prev.map((m) => (m.clientTempId === clientTempId ? { ...m, ...patch } : m)),
     );
-  }, []);
+  }, [conversationId, upsertConversation]);
 
   const handleAfterSend = useCallback(() => {
     listRef.current?.scrollToBottom?.({ behavior: 'smooth' });
@@ -523,6 +549,16 @@ const ChatPage = () => {
           serverMessage = result?.data ?? result;
         }
         if (serverMessage) {
+          upsertConversation({
+            _id: conversationId,
+            lastMessage: {
+              text: serverMessage.type === 'image' ? '[image]' : (serverMessage.text ?? ''),
+              sender: serverMessage.sender ?? null,
+              type: serverMessage.type ?? 'text',
+              createdAt: serverMessage.createdAt ?? new Date().toISOString(),
+            },
+            updatedAt: serverMessage.createdAt ?? new Date().toISOString(),
+          });
           setMessages((prev) =>
             prev.map((m) =>
               m.clientTempId === clientTempId
@@ -548,7 +584,7 @@ const ChatPage = () => {
         throw err;
       }
     },
-    [conversationId, emitWithAck],
+    [conversationId, emitWithAck, upsertConversation],
   );
 
   const composerDisabled =
