@@ -38,12 +38,10 @@ const initialState = {
 
 const AdminMessages = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialId = searchParams.get('id') ?? '';
+  const rawUrlId = searchParams.get('id') ?? '';
+  const activeConversationId = CONVERSATION_ID_RE.test(rawUrlId) ? rawUrlId : '';
 
-  const [conversationIdInput, setConversationIdInput] = useState(initialId);
-  const [activeConversationId, setActiveConversationId] = useState(
-    CONVERSATION_ID_RE.test(initialId) ? initialId : '',
-  );
+  const [conversationIdInput, setConversationIdInput] = useState(activeConversationId);
   const [page, setPage] = useState(1);
   const [filter, setFilter] = useState('');
   const [state, setState] = useState(initialState);
@@ -51,31 +49,8 @@ const AdminMessages = () => {
   const [confirm, setConfirm] = useState(null);
 
   useEffect(() => {
-    const current = searchParams.get('id') ?? '';
-    if (activeConversationId === current) return;
-    const next = new URLSearchParams(searchParams);
-    if (activeConversationId) {
-      next.set('id', activeConversationId);
-    } else {
-      next.delete('id');
-    }
-    setSearchParams(next, { replace: true });
-  }, [activeConversationId, searchParams, setSearchParams]);
-
-  useEffect(() => {
-    const urlId = searchParams.get('id') ?? '';
-    if (urlId === activeConversationId) return;
-    if (CONVERSATION_ID_RE.test(urlId)) {
-      setConversationIdInput(urlId);
-      setFilter('');
-      setPage(1);
-      setActiveConversationId(urlId);
-    } else if (!urlId && activeConversationId) {
-      setConversationIdInput('');
-      setActiveConversationId('');
-      setState(initialState);
-    }
-  }, [searchParams, activeConversationId]);
+    setConversationIdInput(activeConversationId);
+  }, [activeConversationId]);
 
   const fetchPage = useCallback(async (conversationId, nextPage) => {
     if (!conversationId) return;
@@ -106,6 +81,8 @@ const AdminMessages = () => {
   useEffect(() => {
     if (activeConversationId) {
       fetchPage(activeConversationId, page);
+    } else {
+      setState(initialState);
     }
   }, [activeConversationId, page, fetchPage]);
 
@@ -119,15 +96,15 @@ const AdminMessages = () => {
     }
     setFilter('');
     setPage(1);
-    setActiveConversationId(trimmed);
+    setSearchParams({ id: trimmed }, { replace: true });
   };
 
   const handleClear = () => {
-    setActiveConversationId('');
     setConversationIdInput('');
     setFilter('');
     setPage(1);
     setState(initialState);
+    setSearchParams({}, { replace: true });
   };
 
   const handleForceDelete = (message) => {
