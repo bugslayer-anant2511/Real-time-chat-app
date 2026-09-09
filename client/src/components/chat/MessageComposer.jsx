@@ -571,6 +571,7 @@ const MessageComposer = ({
             maxLength={Math.floor(MAX_TEXT_LENGTH * 1.1)}
             aria-label="Message text"
             className="scrollbar-thin max-h-40 min-h-6 w-full resize-none border-0 bg-transparent text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none dark:text-gray-100 dark:placeholder-gray-500"
+            style={{ outline: 'none', boxShadow: 'none' }}
           />
 
           <button
