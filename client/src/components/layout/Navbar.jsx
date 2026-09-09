@@ -16,6 +16,7 @@ import { useAuth } from '../../contexts/AuthContext.jsx';
 import { useOnClickOutside } from '../../hooks/useOnClickOutside.js';
 import Avatar from '../common/Avatar.jsx';
 import NotificationsDropdown from './NotificationsDropdown.jsx';
+import Tooltip from '../common/Tooltip.jsx';
 
 const navLinkClass = ({ isActive }) =>
   clsx(
@@ -62,14 +63,16 @@ const Navbar = () => {
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
           <div className="flex items-center gap-2">
             {location.pathname !== '/chat' && (
-              <button
-                type="button"
-                onClick={() => navigate('/chat')}
-                className="flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-600 shadow-sm transition-colors hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
-                aria-label="Go back to chat"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </button>
+              <Tooltip content="Back to Chat" position="bottom">
+                <button
+                  type="button"
+                  onClick={() => navigate('/chat')}
+                  className="flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-600 shadow-sm transition-colors hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+                  aria-label="Go back to chat"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </button>
+              </Tooltip>
             )}
             <Link
               to="/chat"

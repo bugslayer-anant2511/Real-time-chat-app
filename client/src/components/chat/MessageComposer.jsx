@@ -547,16 +547,17 @@ const MessageComposer = ({
           tabIndex={-1}
         />
 
-        <button
-          type="button"
-          onClick={handleAttachClick}
-          disabled={isSending || isUploading}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-100 hover:text-brand-600 disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-brand-300"
-          aria-label="Attach image"
-          title="Attach image"
-        >
-          <ImagePlus className="h-5 w-5" aria-hidden="true" />
-        </button>
+        <Tooltip content="Attach image" position="top">
+          <button
+            type="button"
+            onClick={handleAttachClick}
+            disabled={isSending || isUploading}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-100 hover:text-brand-600 disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-brand-300"
+            aria-label="Attach image"
+          >
+            <ImagePlus className="h-5 w-5" aria-hidden="true" />
+          </button>
+        </Tooltip>
 
         <div className="flex min-w-0 flex-1 items-end gap-1 rounded-2xl bg-gray-100 px-3 py-1.5 dark:bg-gray-800">
           <textarea
@@ -574,23 +575,24 @@ const MessageComposer = ({
             style={{ outline: 'none', boxShadow: 'none' }}
           />
 
-          <button
-            type="button"
-            onClick={() => setIsEmojiOpen((prev) => !prev)}
-            disabled={isSending}
-            className={clsx(
-              'flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors',
-              isEmojiOpen
-                ? 'bg-brand-100 text-brand-600 dark:bg-brand-900/40 dark:text-brand-300'
-                : 'text-gray-500 hover:bg-gray-200 hover:text-brand-600 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-brand-300',
-              'disabled:cursor-not-allowed disabled:opacity-50',
-            )}
-            aria-label="Insert emoji"
-            aria-expanded={isEmojiOpen}
-            title="Insert emoji"
-          >
-            <Smile className="h-5 w-5" aria-hidden="true" />
-          </button>
+          <Tooltip content="Choose emoji" position="top">
+            <button
+              type="button"
+              onClick={() => setIsEmojiOpen((prev) => !prev)}
+              disabled={isSending}
+              className={clsx(
+                'flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors',
+                isEmojiOpen
+                  ? 'bg-brand-100 text-brand-600 dark:bg-brand-900/40 dark:text-brand-300'
+                  : 'text-gray-500 hover:bg-gray-200 hover:text-brand-600 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-brand-300',
+                'disabled:cursor-not-allowed disabled:opacity-50',
+              )}
+              aria-label="Insert emoji"
+              aria-expanded={isEmojiOpen}
+            >
+              <Smile className="h-5 w-5" aria-hidden="true" />
+            </button>
+          </Tooltip>
         </div>
 
         <Tooltip label={sendTooltipLabel} position="top">

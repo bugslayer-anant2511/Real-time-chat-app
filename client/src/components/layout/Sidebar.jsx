@@ -27,6 +27,7 @@ import Avatar from '../common/Avatar.jsx';
 import Badge from '../common/Badge.jsx';
 import EmptyState from '../common/EmptyState.jsx';
 import ConversationListSkeleton from '../common/skeletons/ConversationListSkeleton.jsx';
+import Tooltip from '../common/Tooltip.jsx';
 import ConversationListItem from '../chat/ConversationListItem.jsx';
 import PresenceDot from '../chat/PresenceDot.jsx';
 
@@ -448,17 +449,19 @@ const Sidebar = () => {
 
         <div className="flex items-center gap-1">
           <div className="relative" ref={newMenuRef}>
-            <button
-              type="button"
-              onClick={() => setNewMenuOpen((v) => !v)}
-              aria-haspopup="menu"
-              aria-expanded={newMenuOpen}
-              className="flex items-center gap-1 rounded-md bg-brand-600 px-2 py-1.5 text-xs font-medium text-white transition-colors hover:bg-brand-700 dark:bg-brand-500 dark:hover:bg-brand-400"
-            >
-              <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-              <span>New</span>
-              <ChevronDown className="h-3 w-3" aria-hidden="true" />
-            </button>
+            <Tooltip content="Start new chat/group" position="bottom">
+              <button
+                type="button"
+                onClick={() => setNewMenuOpen((v) => !v)}
+                aria-haspopup="menu"
+                aria-expanded={newMenuOpen}
+                className="flex items-center gap-1 rounded-md bg-brand-600 px-2 py-1.5 text-xs font-medium text-white transition-colors hover:bg-brand-700 dark:bg-brand-500 dark:hover:bg-brand-400"
+              >
+                <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                <span>New</span>
+                <ChevronDown className="h-3 w-3" aria-hidden="true" />
+              </button>
+            </Tooltip>
 
             {newMenuOpen ? (
               <div
@@ -493,23 +496,29 @@ const Sidebar = () => {
             ) : null}
           </div>
 
-          <Link
-            to="/settings"
-            aria-label="Settings"
-            className="rounded-md p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
-          >
-            <SettingsIcon className="h-4 w-4" aria-hidden="true" />
-          </Link>
+          <Tooltip content="Settings" position="left">
+            <Link
+              to="/settings"
+              aria-label="Settings"
+              className="rounded-md p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
+            >
+              <SettingsIcon className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          </Tooltip>
         </div>
       </div>
 
       <div className="px-3 py-2">
         <label className="relative block">
           <span className="sr-only">Search users</span>
-          <Search
-            className="pointer-events-none absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-gray-400"
-            aria-hidden="true"
-          />
+          <div className="absolute top-1/2 left-2.5 -translate-y-1/2">
+            <Tooltip content="Search" position="right">
+              <Search
+                className="h-4 w-4 text-gray-400"
+                aria-hidden="true"
+              />
+            </Tooltip>
+          </div>
           <input
             type="search"
             value={query}
