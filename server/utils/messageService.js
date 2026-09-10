@@ -152,8 +152,11 @@ export const createMessage = async ({
   if (!conversation) throw ApiError.notFound('Conversation not found');
   assertParticipant(conversation, sid);
 
+  let blockedByOther = false;
+  let otherUserId = null;
+
   if (conversation.type === CONVERSATION_TYPES.DIRECT) {
-    const { viewerBlocked, theyBlocked } = await getDirectBlockState({
+    const { viewerBlocked, theyBlocked, otherId } = await getDirectBlockState({
       conversation,
       viewerId: sid,
     });
@@ -161,7 +164,8 @@ export const createMessage = async ({
       throw ApiError.forbidden('You have blocked this user');
     }
     if (theyBlocked) {
-      throw ApiError.forbidden('You can no longer message this user');
+      blockedByOther = true;
+      otherUserId = otherId;
     }
   }
 
@@ -170,6 +174,7 @@ export const createMessage = async ({
     sender: sid,
     type,
     replyTo: null,
+    hiddenFor: blockedByOther && otherUserId ? [new Types.ObjectId(otherUserId)] : [],
   };
 
   if (type === MESSAGE_TYPES.TEXT) {

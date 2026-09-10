@@ -146,9 +146,14 @@ export const broadcastNewMessage = async (
   const conversationId = String(message.conversationId);
   const wire = serializeMessage(message);
 
-  const target = excludeSocketId
-    ? io.to(convRoom(conversationId)).except(excludeSocketId)
-    : io.to(convRoom(conversationId));
+  let target = io.to(convRoom(conversationId));
+  if (excludeSocketId) target = target.except(excludeSocketId);
+  
+  const hiddenIds = (message.hiddenFor || []).map((id) => String(id));
+  hiddenIds.forEach((id) => {
+    target = target.except(userRoom(id));
+  });
+  
   target.emit('message:new', wire);
 
   const senderId = wire?.sender?._id ? String(wire.sender._id) : null;
@@ -165,10 +170,13 @@ export const broadcastNewMessage = async (
 
   if (!ctx.recipientIds || ctx.recipientIds.length === 0) return;
 
+  const allowedRecipients = ctx.recipientIds.filter((id) => !hiddenIds.includes(id));
+  if (allowedRecipients.length === 0) return;
+
   await emitNotifications({
     io,
     conversationId,
-    recipientIds: ctx.recipientIds,
+    recipientIds: allowedRecipients,
     message: wire,
     fromUser: ctx.fromUser,
   });
@@ -178,9 +186,15 @@ export const broadcastEditedMessage = (io, { message, excludeSocketId = null }) 
   if (!io || !message) return;
   const conversationId = String(message.conversationId);
   const wire = serializeMessage(message);
-  const target = excludeSocketId
-    ? io.to(convRoom(conversationId)).except(excludeSocketId)
-    : io.to(convRoom(conversationId));
+  
+  let target = io.to(convRoom(conversationId));
+  if (excludeSocketId) target = target.except(excludeSocketId);
+  
+  const hiddenIds = (message.hiddenFor || []).map((id) => String(id));
+  hiddenIds.forEach((id) => {
+    target = target.except(userRoom(id));
+  });
+
   target.emit('message:edited', wire);
 };
 
@@ -217,13 +231,20 @@ export const broadcastReactionUpdated = (
 ) => {
   if (!io || !message) return;
   const conversationId = String(message.conversationId);
-  io.to(convRoom(conversationId))
-    .except(excludeSocketId || [])
-    .emit('message:reactionUpdated', {
-      messageId: String(message._id),
-      conversationId,
-      reactions: message.reactions || [],
-    });
+  
+  let target = io.to(convRoom(conversationId));
+  if (excludeSocketId) target = target.except(excludeSocketId);
+  
+  const hiddenIds = (message.hiddenFor || []).map((id) => String(id));
+  hiddenIds.forEach((id) => {
+    target = target.except(userRoom(id));
+  });
+
+  target.emit('message:reactionUpdated', {
+    messageId: String(message._id),
+    conversationId,
+    reactions: message.reactions || [],
+  });
 };
 
 export const broadcastReadReceipt = (

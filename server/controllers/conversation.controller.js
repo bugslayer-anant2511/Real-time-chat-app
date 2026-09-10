@@ -126,29 +126,7 @@ export const getConversations = asyncHandler(async (req, res) => {
     (id) => new Types.ObjectId(String(id)),
   );
 
-  const blockedByMe = (req.user.blockedUsers || [])
-    .map((entry) => entry?.user)
-    .filter(Boolean);
-
-  const blockedMeRows = await User.find(
-    { 'blockedUsers.user': req.user._id },
-    { _id: 1 },
-  ).lean();
-  const blockedMeIds = blockedMeRows.map((u) => u._id);
-
-  const hiddenUserIds = Array.from(
-    new Set([...blockedByMe, ...blockedMeIds].map((id) => String(id))),
-  ).map((s) => new Types.ObjectId(s));
-
   const filter = { participants: req.user._id, isActive: true };
-  if (hiddenUserIds.length > 0) {
-    filter.$nor = [
-      {
-        type: CONVERSATION_TYPES.DIRECT,
-        participants: { $in: hiddenUserIds },
-      },
-    ];
-  }
 
   if (wantsArchived) {
     if (archivedIds.length === 0) {
@@ -756,32 +734,9 @@ export const getUnreadSummary = asyncHandler(async (req, res) => {
     (id) => new Types.ObjectId(String(id)),
   );
 
-  const blockedByMe = (req.user.blockedUsers || [])
-    .map((entry) => entry?.user)
-    .filter(Boolean);
-  const blockedMeRows = await User.find(
-    { 'blockedUsers.user': req.user._id },
-    { _id: 1 },
-  ).lean();
-  const hiddenUserIds = Array.from(
-    new Set(
-      [...blockedByMe, ...blockedMeRows.map((u) => u._id)].map((id) =>
-        String(id),
-      ),
-    ),
-  ).map((s) => new Types.ObjectId(s));
-
   const match = { participants: req.user._id, isActive: true };
   if (archivedIds.length > 0) {
     match._id = { $nin: archivedIds };
-  }
-  if (hiddenUserIds.length > 0) {
-    match.$nor = [
-      {
-        type: CONVERSATION_TYPES.DIRECT,
-        participants: { $in: hiddenUserIds },
-      },
-    ];
   }
 
   const rows = await Conversation.aggregate([

@@ -22,13 +22,14 @@ import { usePreferences } from '../../contexts/PreferencesContext.jsx';
 import { useSocket } from '../../contexts/SocketContext.jsx';
 import * as conversationService from '../../api/conversation.service.js';
 import * as messageService from '../../api/message.service.js';
+import * as userService from '../../api/user.service.js';
 
 const idOf = (value) => (value && value._id ? String(value._id) : String(value ?? ''));
 
 const ChatPage = () => {
   const { conversationId } = useParams();
   const navigate = useNavigate();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, updateUser } = useAuth();
   const { preferences } = usePreferences();
   const { socket, isConnected, emit, typingByConversation } = useSocket();
   const { setActiveConversationId: setNotificationActive } = useNotifications();
@@ -40,6 +41,40 @@ const ChatPage = () => {
   } = useChatState();
 
   const currentUserId = user?._id ? String(user._id) : null;
+
+  const otherParticipant = useMemo(() => {
+    if (!conversation || conversation.type !== 'direct') return null;
+    return conversation.participants.find((p) => String(p._id || p) !== currentUserId);
+  }, [conversation, currentUserId]);
+
+  const isBlockedByMe = useMemo(() => {
+    if (!otherParticipant) return false;
+    return (user?.blockedUsers ?? []).some(
+      (bu) => String(bu.user?._id || bu.user) === String(otherParticipant._id || otherParticipant)
+    );
+  }, [user?.blockedUsers, otherParticipant]);
+
+  const handleUnblock = useCallback(async () => {
+    const targetId = otherParticipant?._id || otherParticipant;
+    if (!targetId) return;
+    try {
+      await userService.unblockUser(targetId);
+      const name = otherParticipant?.displayName || otherParticipant?.username || 'User';
+      toast.success(`${name} has been unblocked`);
+      updateUser((prev) =>
+        prev
+          ? {
+              ...prev,
+              blockedUsers: (prev.blockedUsers ?? []).filter(
+                (bu) => String(bu.user?._id || bu.user) !== String(targetId)
+              ),
+            }
+          : prev,
+      );
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Could not unblock user');
+    }
+  }, [otherParticipant, updateUser]);
 
   const [conversation, setConversation] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -756,6 +791,8 @@ const ChatPage = () => {
         onAfterSend={handleAfterSend}
         disabled={composerDisabled}
         disabledReason={composerDisabledReason}
+        isBlocked={isBlockedByMe}
+        onUnblock={handleUnblock}
       />
 
       <GroupSettingsModal

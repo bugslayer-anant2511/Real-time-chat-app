@@ -56,6 +56,8 @@ const MessageComposer = ({
   onAfterSend,
   disabled = false,
   disabledReason = '',
+  isBlocked = false,
+  onUnblock = null,
 }) => {
   const { user } = useAuth();
   const { preferences } = usePreferences();
@@ -436,6 +438,21 @@ const MessageComposer = ({
     },
     [],
   );
+
+  if (isBlocked) {
+    return (
+      <div className="flex items-center justify-center gap-2 border-t border-gray-200 bg-gray-50 px-4 py-3 text-center text-xs text-gray-500 dark:border-gray-800 dark:bg-gray-900/60 dark:text-gray-400">
+        <span>You have blocked this contact.</span>
+        <button
+          type="button"
+          onClick={onUnblock}
+          className="font-semibold text-brand-600 hover:underline dark:text-brand-400"
+        >
+          Unblock
+        </button>
+      </div>
+    );
+  }
 
   if (disabled) {
     return (

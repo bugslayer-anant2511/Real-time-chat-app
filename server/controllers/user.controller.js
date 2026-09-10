@@ -1,8 +1,12 @@
 import { User } from '../models/User.js';
+import { Conversation } from '../models/Conversation.js';
+import { Message } from '../models/Message.js';
 import { ApiError } from '../utils/apiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { escapeRegex } from '../utils/escapeRegex.js';
-import { ROLES, USER_STATUS } from '../utils/constants.js';
+import { ROLES, USER_STATUS, CONVERSATION_TYPES, MESSAGE_TYPES } from '../utils/constants.js';
+import { broadcastNewMessage } from '../sockets/message.socket.js';
+import mongoose from 'mongoose';
 
 const SEARCH_RESULT_LIMIT = 20;
 
@@ -183,18 +187,43 @@ const loadBlockTarget = async ({ requesterId, targetId }) => {
 // POST /api/users/:userId/block
 export const blockUser = asyncHandler(async (req, res) => {
   const { userId: targetId } = req.params;
+  const requesterId = req.user._id;
 
   await loadBlockTarget({
-    requesterId: req.user._id,
+    requesterId,
     targetId,
   });
 
   const result = await User.updateOne(
-    { _id: req.user._id, 'blockedUsers.user': { $ne: targetId } },
+    { _id: requesterId, 'blockedUsers.user': { $ne: targetId } },
     { $push: { blockedUsers: { user: targetId, blockedAt: new Date() } } },
   );
 
   const alreadyBlocked = result.modifiedCount === 0;
+
+  if (!alreadyBlocked) {
+    const conversation = await Conversation.findOne({
+      type: CONVERSATION_TYPES.DIRECT,
+      participants: { $all: [requesterId, targetId] },
+    });
+    if (conversation) {
+      const sysMsg = await Message.create({
+        conversationId: conversation._id,
+        sender: null,
+        type: MESSAGE_TYPES.SYSTEM,
+        text: 'You have blocked this contact',
+        hiddenFor: [new mongoose.Types.ObjectId(String(targetId))],
+      });
+      const io = req.app.get('io');
+      if (io) {
+        await broadcastNewMessage(io, {
+          message: sysMsg,
+          conversation,
+          fromUser: req.user,
+        });
+      }
+    }
+  }
 
   res.status(alreadyBlocked ? 200 : 201).json({
     success: true,
@@ -206,17 +235,42 @@ export const blockUser = asyncHandler(async (req, res) => {
 // DELETE /api/users/:userId/block
 export const unblockUser = asyncHandler(async (req, res) => {
   const { userId: targetId } = req.params;
+  const requesterId = req.user._id;
 
-  if (String(req.user._id) === String(targetId)) {
+  if (String(requesterId) === String(targetId)) {
     throw ApiError.badRequest('You cannot unblock yourself');
   }
 
   const result = await User.updateOne(
-    { _id: req.user._id },
+    { _id: requesterId },
     { $pull: { blockedUsers: { user: targetId } } },
   );
 
   const wasBlocked = result.modifiedCount > 0;
+
+  if (wasBlocked) {
+    const conversation = await Conversation.findOne({
+      type: CONVERSATION_TYPES.DIRECT,
+      participants: { $all: [requesterId, targetId] },
+    });
+    if (conversation) {
+      const sysMsg = await Message.create({
+        conversationId: conversation._id,
+        sender: null,
+        type: MESSAGE_TYPES.SYSTEM,
+        text: 'You have unblocked this contact',
+        hiddenFor: [new mongoose.Types.ObjectId(String(targetId))],
+      });
+      const io = req.app.get('io');
+      if (io) {
+        await broadcastNewMessage(io, {
+          message: sysMsg,
+          conversation,
+          fromUser: req.user,
+        });
+      }
+    }
+  }
 
   res.status(200).json({
     success: true,

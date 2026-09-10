@@ -129,6 +129,13 @@ const ChatHeader = ({
     }
   }, [conversationId, isMutating, updateUser]);
 
+  const isBlocked = useMemo(() => {
+    if (!otherParticipant) return false;
+    return (user?.blockedUsers ?? []).some(
+      (bu) => String(bu.user?._id || bu.user) === String(otherParticipant._id)
+    );
+  }, [user?.blockedUsers, otherParticipant]);
+
   const handleBlockUser = useCallback(async () => {
     if (!otherParticipant?._id || isBlocking) return;
     const ok = window.confirm(
@@ -153,6 +160,30 @@ const ChatHeader = ({
       );
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Could not block user');
+    } finally {
+      setIsBlocking(false);
+    }
+  }, [displayName, isBlocking, otherParticipant, updateUser]);
+
+  const handleUnblockUser = useCallback(async () => {
+    if (!otherParticipant?._id || isBlocking) return;
+    setIsBlocking(true);
+    setMenuOpen(false);
+    try {
+      await userService.unblockUser(otherParticipant._id);
+      toast.success(`${displayName} has been unblocked`);
+      updateUser((prev) =>
+        prev
+          ? {
+              ...prev,
+              blockedUsers: (prev.blockedUsers ?? []).filter(
+                (bu) => String(bu.user?._id || bu.user) !== String(otherParticipant._id)
+              ),
+            }
+          : prev,
+      );
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Could not unblock user');
     } finally {
       setIsBlocking(false);
     }
@@ -323,11 +354,11 @@ const ChatHeader = ({
                   type="button"
                   role="menuitem"
                   disabled={isBlocking}
-                  onClick={handleBlockUser}
+                  onClick={isBlocked ? handleUnblockUser : handleBlockUser}
                   className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-950/30"
                 >
                   <ShieldOff className="h-4 w-4" aria-hidden="true" />
-                  <span>Block user</span>
+                  <span>{isBlocked ? 'Unblock user' : 'Block user'}</span>
                 </button>
               ) : null}
               {isGroup ? (
