@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
 import {
+  Archive,
   Bell,
   BellOff,
   ChevronLeft,
@@ -189,6 +190,52 @@ const ChatHeader = ({
     }
   }, [displayName, isBlocking, otherParticipant, updateUser]);
 
+  const isArchived = useMemo(() => {
+    if (!conversationId) return false;
+    const list = user?.archivedConversations ?? [];
+    return list.some((id) => String(id) === conversationId);
+  }, [conversationId, user?.archivedConversations]);
+
+  const handleToggleArchive = useCallback(async () => {
+    if (!conversationId || isMutating) return;
+    setIsMutating(true);
+    setMenuOpen(false);
+
+    // Optimistically toggle
+    updateUser((prev) => {
+      if (!prev) return prev;
+      const list = prev.archivedConversations ?? [];
+      const exists = list.some((id) => String(id) === conversationId);
+      const nextList = exists
+        ? list.filter((id) => String(id) !== conversationId)
+        : [...list, conversationId];
+      return { ...prev, archivedConversations: nextList };
+    });
+
+    try {
+      const res = await conversationService.toggleArchive(conversationId);
+      const wasArchived = res?.data?.archived;
+      toast.success(wasArchived ? 'Conversation archived' : 'Conversation unarchived');
+      
+      removeConversation(conversationId);
+      navigate('/chat');
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Could not update archive status');
+      // Revert
+      updateUser((prev) => {
+        if (!prev) return prev;
+        const list = prev.archivedConversations ?? [];
+        const exists = list.some((id) => String(id) === conversationId);
+        const nextList = exists
+          ? list.filter((id) => String(id) !== conversationId)
+          : [...list, conversationId];
+        return { ...prev, archivedConversations: nextList };
+      });
+    } finally {
+      setIsMutating(false);
+    }
+  }, [conversationId, isMutating, navigate, removeConversation, updateUser]);
+
   const handleLeaveGroup = useCallback(async () => {
     if (!conversationId || isLeaving) return;
     const ok = window.confirm(`Leave the group "${displayName}"?`);
@@ -373,6 +420,16 @@ const ChatHeader = ({
                   <span>Leave group</span>
                 </button>
               ) : null}
+              <button
+                type="button"
+                role="menuitem"
+                disabled={isMutating}
+                onClick={handleToggleArchive}
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-800"
+              >
+                <Archive className="h-4 w-4" aria-hidden="true" />
+                <span>{isArchived ? 'Unarchive chat' : 'Archive chat'}</span>
+              </button>
               <button
                 type="button"
                 role="menuitem"
