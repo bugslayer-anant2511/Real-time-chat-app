@@ -42,6 +42,19 @@ const ChatPage = () => {
 
   const currentUserId = user?._id ? String(user._id) : null;
 
+  const [conversation, setConversation] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [isLoadingInitial, setIsLoadingInitial] = useState(true);
+  const [isLoadingOlder, setIsLoadingOlder] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [error, setError] = useState(null);
+  const [replyTo, setReplyTo] = useState(null);
+  const [isGroupSettingsOpen, setIsGroupSettingsOpen] = useState(false);
+
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchIndex, setSearchIndex] = useState(0);
+
   const otherParticipant = useMemo(() => {
     if (!conversation || conversation.type !== 'direct') return null;
     return conversation.participants.find((p) => String(p._id || p) !== currentUserId);
@@ -75,19 +88,6 @@ const ChatPage = () => {
       toast.error(err?.response?.data?.message || 'Could not unblock user');
     }
   }, [otherParticipant, updateUser]);
-
-  const [conversation, setConversation] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [isLoadingInitial, setIsLoadingInitial] = useState(true);
-  const [isLoadingOlder, setIsLoadingOlder] = useState(false);
-  const [hasMore, setHasMore] = useState(false);
-  const [error, setError] = useState(null);
-  const [replyTo, setReplyTo] = useState(null);
-  const [isGroupSettingsOpen, setIsGroupSettingsOpen] = useState(false);
-
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchIndex, setSearchIndex] = useState(0);
 
   const listRef = useRef(null);
 
