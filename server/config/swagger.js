@@ -19,7 +19,7 @@ const swaggerDefinition = {
       'Production-grade real-time chat platform — REST surface for auth, conversations, messages, uploads, notifications, reports and admin moderation.',
     contact: {
       name: 'Anant Kumar Singh',
-      url: 'https://anantsingh2511@gmail.com/',
+      email: 'anantsingh2511@gmail.com',
     },
     license: {
       name: 'MIT',

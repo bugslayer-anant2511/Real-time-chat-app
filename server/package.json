@@ -5,7 +5,7 @@
   "description": "Chat App backend — Express 5, MongoDB, Socket.io, JWT, Cloudinary",
   "author": {
     "name": "Anant Kumar Singh",
-    "url": "https://anantsingh2511@gmail.com/"
+    "email": "anantsingh2511@gmail.com"
   },
   "license": "MIT",
   "type": "module",

@@ -353,10 +353,7 @@ const renderWelcomePage = (version) => `<!DOCTYPE html>
     </nav>
 
     <footer class="sign">
-      Created by
-      <a href="https://anantsingh2511@gmail.com/" target="_blank" rel="noopener noreferrer">Anant Kumar Singh</a>
-      |
-      <a href="https://github.com/Anant Kumar Singhx" target="_blank" rel="noopener noreferrer">Github</a>
+      Created by Anant Kumar Singh
     </footer>
   </main>
 </body>
