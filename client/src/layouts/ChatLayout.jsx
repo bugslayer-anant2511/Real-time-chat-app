@@ -83,9 +83,30 @@ const ConnectionStrip = () => {
 const ChatLayout = () => {
   const inConversation = useMatch('/chat/:conversationId');
 
+  useEffect(() => {
+    if (!window.visualViewport) return undefined;
+
+    const handleResize = () => {
+      const height = window.visualViewport.height;
+      document.documentElement.style.setProperty('--visual-viewport-height', `${height}px`);
+    };
+
+    window.visualViewport.addEventListener('resize', handleResize);
+    window.visualViewport.addEventListener('scroll', handleResize);
+    handleResize();
+
+    return () => {
+      window.visualViewport.removeEventListener('resize', handleResize);
+      window.visualViewport.removeEventListener('scroll', handleResize);
+    };
+  }, []);
+
   return (
     <ChatStateProvider>
-      <div className="flex h-dvh w-full flex-col overflow-hidden bg-gray-50 dark:bg-gray-950">
+      <div
+        className="flex w-full flex-col overflow-hidden bg-gray-50 dark:bg-gray-950"
+        style={{ height: 'var(--visual-viewport-height, 100vh)' }}
+      >
         <ConnectionStrip />
 
         <NotificationPermissionBanner />
