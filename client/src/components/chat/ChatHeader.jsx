@@ -37,7 +37,7 @@ const ChatHeader = ({
   const navigate = useNavigate();
   const { user, updateUser } = useAuth();
   const { onlineUserIds } = useSocket();
-  const { upsertConversation, removeConversation } = useChatState();
+  const { upsertConversation, removeConversation, refreshConversations } = useChatState();
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
@@ -218,6 +218,7 @@ const ChatHeader = ({
       toast.success(wasArchived ? 'Conversation archived' : 'Conversation unarchived');
       
       removeConversation(conversationId);
+      await refreshConversations();
       navigate('/chat');
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Could not update archive status');
@@ -234,7 +235,7 @@ const ChatHeader = ({
     } finally {
       setIsMutating(false);
     }
-  }, [conversationId, isMutating, navigate, removeConversation, updateUser]);
+  }, [conversationId, isMutating, navigate, removeConversation, refreshConversations, updateUser]);
 
   const handleLeaveGroup = useCallback(async () => {
     if (!conversationId || isLeaving) return;
