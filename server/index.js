@@ -41,7 +41,13 @@ app.use(helmet());
 // 3) Strict CORS — explicit origin, credentials only for the whitelisted client.
 app.use(
   cors({
-    origin: env.CLIENT_URL,
+    origin: (origin, callback) => {
+      if (!origin || env.NODE_ENV === 'development') {
+        callback(null, true);
+      } else {
+        callback(null, env.CLIENT_URL);
+      }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   }),

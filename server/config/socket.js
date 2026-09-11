@@ -3,7 +3,13 @@ import { Server } from 'socket.io';
 export const createSocketServer = (httpServer, env) =>
   new Server(httpServer, {
     cors: {
-      origin: env.CLIENT_URL,
+      origin: (origin, callback) => {
+        if (!origin || env.NODE_ENV === 'development') {
+          callback(null, true);
+        } else {
+          callback(null, env.CLIENT_URL);
+        }
+      },
       credentials: true,
       methods: ['GET', 'POST'],
     },
