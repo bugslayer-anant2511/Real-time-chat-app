@@ -25,6 +25,15 @@
  * specificity so user overrides still win. */
 @custom-variant dark (&:where(.dark, .dark *));
 
+html,
+body,
+#root {
+  height: 100%;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+}
+
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;

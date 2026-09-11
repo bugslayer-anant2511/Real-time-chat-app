@@ -372,7 +372,10 @@ const MessageComposer = ({
       }
     } finally {
       setIsSending(false);
-      requestAnimationFrame(() => textareaRef.current?.focus());
+      const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+      if (!isMobile) {
+        requestAnimationFrame(() => textareaRef.current?.focus());
+      }
     }
   }, [
     attachment,
@@ -616,6 +619,7 @@ const MessageComposer = ({
           <button
             type="submit"
             disabled={!canSend}
+            onMouseDown={(e) => e.preventDefault()}
             aria-disabled={!canSend || sendVisuallyMuted}
             className={clsx(
               'flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all',
