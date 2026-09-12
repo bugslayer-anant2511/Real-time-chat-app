@@ -88,7 +88,9 @@ const ChatLayout = () => {
 
     const handleResize = () => {
       const height = window.visualViewport.height;
+      const offset = window.visualViewport.offsetTop;
       document.documentElement.style.setProperty('--visual-viewport-height', `${height}px`);
+      document.documentElement.style.setProperty('--visual-viewport-offset', `${offset}px`);
       window.scrollTo(0, 0);
     };
 
@@ -114,7 +116,10 @@ const ChatLayout = () => {
     <ChatStateProvider>
       <div
         className="flex w-full flex-col overflow-hidden bg-gray-50 dark:bg-gray-950"
-        style={{ height: 'var(--visual-viewport-height, 100vh)' }}
+        style={{
+          height: 'var(--visual-viewport-height, 100vh)',
+          transform: 'translateY(var(--visual-viewport-offset, 0px))',
+        }}
       >
         <ConnectionStrip />
 
