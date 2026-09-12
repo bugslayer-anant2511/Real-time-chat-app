@@ -1,8 +1,8 @@
 import axios from 'axios';
-import { STORAGE_KEYS } from '../utils/constants.js';
+import { API_BASE_URL, STORAGE_KEYS } from '../utils/constants.js';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: API_BASE_URL,
   withCredentials: false,
   timeout: 15_000,
 });

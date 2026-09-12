@@ -65,3 +65,17 @@ export const GROUP_RULES = Object.freeze({
 export const NOTIFICATION_SOUND_URL = '/notification-sound.mp3';
 
 export const NOTIFICATION_BUFFER_SIZE = 20;
+
+export const BACKEND_URL =
+  import.meta.env.VITE_BACKEND_URL ||
+  import.meta.env.VITE_SERVER_URL ||
+  'http://localhost:5001';
+
+export const API_BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  `${BACKEND_URL.replace(/\/+$/, '')}/api`;
+
+export const SOCKET_URL =
+  import.meta.env.VITE_SOCKET_URL ||
+  BACKEND_URL.replace(/\/+$/, '');
+

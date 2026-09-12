@@ -11,10 +11,9 @@ import { io } from 'socket.io-client';
 import toast from 'react-hot-toast';
 
 import { useAuth } from './AuthContext.jsx';
+import { SOCKET_URL } from '../utils/constants.js';
 
 const SocketContext = createContext(null);
-
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL;
 
 const setWith = (prev, value) => {
   const next = new Set(prev);
