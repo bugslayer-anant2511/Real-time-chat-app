@@ -89,15 +89,24 @@ const ChatLayout = () => {
     const handleResize = () => {
       const height = window.visualViewport.height;
       document.documentElement.style.setProperty('--visual-viewport-height', `${height}px`);
+      window.scrollTo(0, 0);
+    };
+
+    const handleScroll = () => {
+      if (window.scrollY !== 0) {
+        window.scrollTo(0, 0);
+      }
     };
 
     window.visualViewport.addEventListener('resize', handleResize);
     window.visualViewport.addEventListener('scroll', handleResize);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     handleResize();
 
     return () => {
       window.visualViewport.removeEventListener('resize', handleResize);
       window.visualViewport.removeEventListener('scroll', handleResize);
+      window.removeEventListener('scroll', handleScroll);
     };
   }, []);
 
