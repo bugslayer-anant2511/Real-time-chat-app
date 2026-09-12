@@ -10,7 +10,7 @@ import {
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
 import EmojiPicker, { EmojiStyle, Theme as EmojiTheme } from 'emoji-picker-react';
-import { ImagePlus, Send, Smile, X } from 'lucide-react';
+import { ImagePlus, Keyboard, Send, Smile, X } from 'lucide-react';
 
 import Spinner from '../common/Spinner.jsx';
 import Tooltip from '../common/Tooltip.jsx';
@@ -80,6 +80,28 @@ const MessageComposer = ({
 
   const typingActiveRef = useRef(false);
   const typingTimerRef = useRef(null);
+
+  const isMobile = useMemo(() => {
+    return /Mobi|Android/i.test(navigator.userAgent) || window.innerWidth < 768;
+  }, []);
+
+  const handleEmojiToggle = useCallback(() => {
+    setIsEmojiOpen((prev) => {
+      const next = !prev;
+      if (isMobile) {
+        if (next) {
+          textareaRef.current?.blur();
+        } else {
+          textareaRef.current?.focus();
+        }
+      }
+      return next;
+    });
+  }, [isMobile]);
+
+  const handleTextareaFocus = useCallback(() => {
+    setIsEmojiOpen(false);
+  }, []);
 
   const clearTypingTimer = useCallback(() => {
     if (typingTimerRef.current) {
@@ -532,7 +554,7 @@ const MessageComposer = ({
         </div>
       ) : null}
 
-      {isEmojiOpen ? (
+      {isEmojiOpen && !isMobile ? (
         <div
           ref={emojiContainerRef}
           className="absolute bottom-full right-2 z-30 mb-2 overflow-hidden rounded-xl shadow-2xl"
@@ -587,6 +609,7 @@ const MessageComposer = ({
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
             onBlur={stopTyping}
+            onFocus={handleTextareaFocus}
             placeholder={hasAttachment ? 'Add a caption…' : 'Message…'}
             rows={1}
             maxLength={Math.floor(MAX_TEXT_LENGTH * 1.1)}
@@ -595,10 +618,10 @@ const MessageComposer = ({
             style={{ outline: 'none', boxShadow: 'none' }}
           />
 
-          <Tooltip content="Choose emoji" position="top">
+          <Tooltip content={isEmojiOpen ? 'Show keyboard' : 'Choose emoji'} position="top">
             <button
               type="button"
-              onClick={() => setIsEmojiOpen((prev) => !prev)}
+              onClick={handleEmojiToggle}
               disabled={isSending}
               className={clsx(
                 'flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors',
@@ -607,10 +630,14 @@ const MessageComposer = ({
                   : 'text-gray-500 hover:bg-gray-200 hover:text-brand-600 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-brand-300',
                 'disabled:cursor-not-allowed disabled:opacity-50',
               )}
-              aria-label="Insert emoji"
+              aria-label={isEmojiOpen ? 'Show keyboard' : 'Insert emoji'}
               aria-expanded={isEmojiOpen}
             >
-              <Smile className="h-5 w-5" aria-hidden="true" />
+              {isEmojiOpen ? (
+                <Keyboard className="h-5 w-5" aria-hidden="true" />
+              ) : (
+                <Smile className="h-5 w-5" aria-hidden="true" />
+              )}
             </button>
           </Tooltip>
         </div>
@@ -665,6 +692,21 @@ const MessageComposer = ({
               {remaining}
             </span>
           ) : null}
+        </div>
+      ) : null}
+
+      {isEmojiOpen && isMobile ? (
+        <div className="w-full border-t border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-950 flex justify-center py-2 shrink-0">
+          <EmojiPicker
+            onEmojiClick={handleEmojiSelect}
+            theme={emojiTheme}
+            emojiStyle={EmojiStyle.NATIVE}
+            lazyLoadEmojis
+            searchPlaceholder="Search emoji"
+            previewConfig={{ showPreview: false }}
+            width="100%"
+            height={280}
+          />
         </div>
       ) : null}
     </div>

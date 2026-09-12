@@ -234,7 +234,7 @@ const MessagesList = forwardRef(
         <div
           ref={containerRef}
           onScroll={handleScroll}
-          className="scrollbar-thin flex-1 overflow-y-auto bg-gray-50 px-2 py-3 dark:bg-gray-950"
+          className="scrollbar-thin flex-1 overflow-y-auto bg-gray-50 px-2 pt-3 pb-8 md:pb-4 dark:bg-gray-950"
         >
           {showEmptyState ? (
             <div className="flex h-full items-center justify-center px-4 py-8">
