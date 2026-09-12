@@ -762,6 +762,7 @@ const ChatPage = () => {
       />
 
       <MessagesList
+        key={conversationId}
         ref={listRef}
         messages={messages}
         currentUserId={currentUserId}

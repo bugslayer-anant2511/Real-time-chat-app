@@ -147,6 +147,11 @@ const MessagesList = forwardRef(
       if (isFirstRenderRef.current) {
         if (lastId) {
           el.scrollTop = el.scrollHeight;
+          requestAnimationFrame(() => {
+            if (el.isConnected) {
+              el.scrollTop = el.scrollHeight;
+            }
+          });
           previousLastIdRef.current = lastId;
           isFirstRenderRef.current = false;
         }
