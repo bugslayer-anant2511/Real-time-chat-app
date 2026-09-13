@@ -35,3 +35,15 @@ scripts/
 PROJECT_RULES.md
 GSD-STYLE.md
 model_capabilities.yaml
+
+# Scratch and Testing Files
+scratch.js
+build_pdf.js
+build_pdf.mjs
+build_interview_pdf.mjs
+create_pdf_md.js
+server/test-db.js
+server/test-mongoose.js
+server/test-time.js
+server/scripts/testMiddlewares.js
+server/scripts/testModels.js
