@@ -18,14 +18,14 @@ const DOT_SIZE = {
 };
 
 const FALLBACK_PALETTE = [
-  'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-200',
-  'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200',
-  'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200',
-  'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-200',
-  'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-200',
-  'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-200',
-  'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-200',
-  'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-900/40 dark:text-fuchsia-200',
+  { bg: 'rgba(124,58,237,0.20)', color: '#c4b5fd' },
+  { bg: 'rgba(236,72,153,0.20)', color: '#f9a8d4' },
+  { bg: 'rgba(59,130,246,0.20)', color: '#93c5fd' },
+  { bg: 'rgba(20,184,166,0.20)', color: '#5eead4' },
+  { bg: 'rgba(245,158,11,0.20)', color: '#fcd34d' },
+  { bg: 'rgba(239,68,68,0.20)', color: '#fca5a5' },
+  { bg: 'rgba(34,197,94,0.20)', color: '#86efac' },
+  { bg: 'rgba(168,85,247,0.22)', color: '#d8b4fe' },
 ];
 
 const getInitials = (name = '') => {
@@ -71,10 +71,10 @@ const Avatar = ({
     <span
       className={clsx(
         'relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold',
-        paletteClass,
         sizeClasses,
         className,
       )}
+      style={!(src && !errored) ? { background: paletteClass.bg, color: paletteClass.color } : undefined}
       title={name || undefined}
     >
       {src && !errored ? (
@@ -92,9 +92,9 @@ const Avatar = ({
       {showStatus ? (
         <span
           className={clsx(
-            'absolute right-0 bottom-0 rounded-full ring-2 ring-white dark:ring-gray-950',
+            'absolute right-0 bottom-0 rounded-full ring-2 ring-white dark:ring-[#16162a]',
+            online ? 'bg-[#4ade80] shadow-[0_0_5px_rgba(74,222,128,0.5)]' : 'bg-gray-300 dark:bg-[#4a4a6a]',
             dotClasses,
-            online ? 'bg-emerald-500' : 'bg-gray-400 dark:bg-gray-600',
           )}
           aria-label={online ? 'Online' : 'Offline'}
         />

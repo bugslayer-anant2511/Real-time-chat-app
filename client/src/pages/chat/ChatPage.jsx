@@ -5,7 +5,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 import ChatHeader from '../../components/chat/ChatHeader.jsx';
@@ -32,7 +32,10 @@ const ChatPage = () => {
   const { user, isAdmin, updateUser } = useAuth();
   const { preferences } = usePreferences();
   const { socket, isConnected, emit, typingByConversation } = useSocket();
-  const { setActiveConversationId: setNotificationActive } = useNotifications();
+  const { 
+    setActiveConversationId: setNotificationActive, 
+    markConversationRead 
+  } = useNotifications();
   const {
     setActiveConversationId,
     upsertConversation,
@@ -41,6 +44,8 @@ const ChatPage = () => {
   } = useChatState();
 
   const currentUserId = user?._id ? String(user._id) : null;
+
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [conversation, setConversation] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -167,6 +172,7 @@ const ChatPage = () => {
     setNotificationActive(conversationId);
     setActiveConversationId(conversationId);
     resetUnread(conversationId);
+    markConversationRead(conversationId);
 
     emit('conversation:open', { conversationId });
     emit('conversation:read', { conversationId });
@@ -187,6 +193,7 @@ const ChatPage = () => {
     resetUnread,
     setActiveConversationId,
     setNotificationActive,
+    markConversationRead,
   ]);
 
   useEffect(() => {
@@ -195,10 +202,11 @@ const ChatPage = () => {
       if (document.visibilityState !== 'visible') return;
       emit('conversation:read', { conversationId });
       conversationService.markAsRead(conversationId).catch(() => {});
+      markConversationRead(conversationId);
     };
     document.addEventListener('visibilitychange', handleVisibility);
     return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [conversationId, emit]);
+  }, [conversationId, emit, markConversationRead]);
 
   useEffect(() => {
     if (!socket || !conversationId) return undefined;
@@ -622,14 +630,82 @@ const ChatPage = () => {
     [conversationId, emitWithAck, upsertConversation],
   );
 
+  const isDirect = conversation?.type === 'direct';
+  const theyAdmin = otherParticipant?.role === 'admin';
+  const isPendingRequest = isDirect && conversation?.isAccepted === false && !isAdmin && !theyAdmin;
+  const isInitiator = String(conversation?.createdBy) === currentUserId;
+  const initiatorMessagesSent = useMemo(() => {
+    return messages.filter(
+      (m) => String(m.sender?._id || m.sender) === currentUserId
+    ).length;
+  }, [messages, currentUserId]);
+
+  const latestPinnedMessage = useMemo(() => {
+    return messages.find((m) => m.isPinned);
+  }, [messages]);
+
   const composerDisabled =
     !conversationId ||
     isLoadingInitial ||
     Boolean(error) ||
-    conversation?.isActive === false;
+    conversation?.isActive === false ||
+    (isPendingRequest && isInitiator && initiatorMessagesSent >= 5);
+
   const composerDisabledReason = !conversation?.isActive
     ? 'This conversation is no longer active.'
-    : '';
+    : isPendingRequest && isInitiator && initiatorMessagesSent >= 5
+      ? 'Wait for the user to accept your friend request before sending more messages.'
+      : '';
+
+  const handleAcceptRequest = useCallback(async () => {
+    try {
+      await conversationService.acceptFriendRequest(conversationId);
+      setConversation((prev) => prev ? { ...prev, isAccepted: true } : prev);
+      toast.success('Friend request accepted');
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to accept request');
+    }
+  }, [conversationId]);
+
+  const handleDeclineRequest = useCallback(async () => {
+    const targetId = otherParticipant?._id || otherParticipant;
+    if (!targetId) return;
+    try {
+      await userService.blockUser(targetId);
+      toast.success('User blocked');
+      navigate('/chat');
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to block user');
+    }
+  }, [otherParticipant, navigate]);
+
+  const handleTogglePinMessage = useCallback(async (message) => {
+    if (!message?._id) return;
+    try {
+      const result = await messageService.togglePinMessage(message._id);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m._id === message._id ? { ...m, isPinned: result?.data?.isPinned } : m
+        )
+      );
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to pin message');
+    }
+  }, []);
+
+  const handleToggleStarMessage = useCallback(async (message) => {
+    if (!message?._id) return;
+    try {
+      const result = await messageService.toggleStarMessage(message._id);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m._id === message._id ? { ...m, starredBy: result?.data?.starredBy } : m
+        )
+      );
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to star message');
+    }
+  }, []);
 
   const handleLoadOlder = useCallback(async () => {
     if (!conversationId || isLoadingOlder || !hasMore) return;
@@ -673,10 +749,34 @@ const ChatPage = () => {
     }
   }, [searchMatchIds, searchIndex]);
 
+  const [jumpMessageId, setJumpMessageId] = useState(null);
+
+  const handleJumpToMessage = useCallback((messageId) => {
+    setJumpMessageId(messageId);
+    
+    // Clear the highlight after the blink animation finishes
+    setTimeout(() => {
+      setJumpMessageId((prev) => prev === messageId ? null : prev);
+    }, 2000);
+  }, []);
+
+  useEffect(() => {
+    const jumpId = searchParams.get('jump');
+    if (jumpId) {
+      handleJumpToMessage(jumpId);
+      setSearchParams(params => {
+        params.delete('jump');
+        return params;
+      }, { replace: true });
+    }
+  }, [searchParams, handleJumpToMessage, setSearchParams]);
+
   const highlightMessageId = useMemo(() => {
+    if (jumpMessageId) return jumpMessageId;
     if (!isSearchOpen || searchMatchIds.length === 0) return null;
     return searchMatchIds[Math.min(searchIndex, searchMatchIds.length - 1)] ?? null;
-  }, [isSearchOpen, searchIndex, searchMatchIds]);
+  }, [jumpMessageId, isSearchOpen, searchIndex, searchMatchIds]);
+
 
   const handleOpenSearch = useCallback(() => {
     setIsSearchOpen(true);
@@ -748,6 +848,7 @@ const ChatPage = () => {
         isLoading={isLoadingInitial}
         onOpenSearch={handleOpenSearch}
         onOpenGroupSettings={handleOpenGroupSettings}
+        onJumpToMessage={handleJumpToMessage}
       />
 
       <SearchInChatBar
@@ -760,6 +861,59 @@ const ChatPage = () => {
         onPrev={handleSearchPrev}
         onClose={handleCloseSearch}
       />
+
+      {isPendingRequest && (
+        <div className="flex w-full flex-col items-center justify-center gap-2 bg-indigo-950/40 p-4 text-center text-sm shadow-inner sm:flex-row sm:text-left border-b border-indigo-500/20">
+          {isInitiator ? (
+            <div className="flex flex-col items-center gap-1 sm:items-start">
+              <span className="font-medium text-indigo-200">
+                Friend request sent. Waiting for acceptance.
+              </span>
+              <span className="text-xs text-indigo-400">
+                ({initiatorMessagesSent}/5 messages sent)
+              </span>
+            </div>
+          ) : (
+            <>
+              <span className="font-medium text-indigo-200 flex-1">
+                This person wants to connect with you.
+              </span>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleDeclineRequest}
+                  className="rounded-lg bg-white/5 px-4 py-1.5 font-medium text-rose-300 transition-colors hover:bg-white/10"
+                >
+                  Decline & Block
+                </button>
+                <button
+                  onClick={handleAcceptRequest}
+                  className="rounded-lg bg-indigo-500 px-4 py-1.5 font-medium text-white transition-colors hover:bg-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.4)]"
+                >
+                  Accept
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {latestPinnedMessage && (
+        <div className="flex w-full items-center justify-between bg-indigo-900/30 px-4 py-2 text-sm border-b border-indigo-500/20 backdrop-blur-sm cursor-pointer hover:bg-indigo-900/40 transition-colors"
+          onClick={() => {
+            // Optional: Scroll to message logic could be added here
+          }}
+        >
+          <div className="flex items-center gap-3 overflow-hidden">
+            <span className="text-indigo-400">📌</span>
+            <div className="flex flex-col truncate">
+              <span className="text-xs font-semibold text-indigo-300">Pinned Message</span>
+              <span className="truncate text-white/90">
+                {latestPinnedMessage.text || '📸 Image'}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       <MessagesList
         key={conversationId}
@@ -781,6 +935,8 @@ const ChatPage = () => {
         onDelete={handleDeleteMessage}
         onReact={handleToggleReaction}
         onRetry={handleRetryMessage}
+        onTogglePin={handleTogglePinMessage}
+        onToggleStar={handleToggleStarMessage}
       />
 
       <MessageComposer

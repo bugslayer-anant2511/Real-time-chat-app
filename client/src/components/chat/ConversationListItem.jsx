@@ -33,6 +33,8 @@ const ConversationListItem = ({
   isOnline,
   unreadCount,
   onClick,
+  isPinned,
+  onTogglePin,
 }) => {
   const displayName = isGroup
     ? conversation.name || 'Untitled group'
@@ -49,12 +51,16 @@ const ConversationListItem = ({
       to={to}
       onClick={onClick}
       aria-current={isActive ? 'true' : undefined}
-      className={clsx(
-        'group flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors',
-        isActive
-          ? 'bg-brand-50 dark:bg-brand-900/30'
-          : 'hover:bg-gray-100 dark:hover:bg-gray-800',
-      )}
+      className="group flex w-full items-center gap-3 rounded-xl px-2.5 py-2.5 text-left transition-all duration-200"
+      style={isActive
+        ? {
+            background: 'rgba(124,58,237,0.16)',
+            borderLeft: '2px solid #7c3aed',
+            paddingLeft: '8px',
+          }
+        : { borderLeft: '2px solid transparent' }}
+      onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = 'rgba(124,58,237,0.08)'; } }}
+      onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = ''; } }}
     >
       <span className="relative shrink-0">
         <Avatar src={avatarSrc} name={displayName} size="md" />
@@ -64,7 +70,9 @@ const ConversationListItem = ({
           </span>
         ) : null}
         {isGroup ? (
-          <span className="absolute -right-1 -bottom-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-gray-200 text-gray-600 ring-2 ring-white dark:bg-gray-700 dark:text-gray-300 dark:ring-gray-900">
+          <span
+            className="absolute -right-1 -bottom-1 inline-flex h-4 w-4 items-center justify-center rounded-full ring-2 ring-white dark:ring-[#16162a] bg-brand-50 dark:bg-[rgba(22,22,42,0.9)] text-brand-600 dark:text-[#a78bfa] border border-brand-200 dark:border-[rgba(124,58,237,0.30)]"
+          >
             <Users className="h-2.5 w-2.5" aria-hidden="true" />
           </span>
         ) : null}
@@ -74,10 +82,10 @@ const ConversationListItem = ({
         <span className="flex items-center justify-between gap-2">
           <span
             className={clsx(
-              'truncate text-sm',
-              hasUnread
-                ? 'font-semibold text-gray-900 dark:text-white'
-                : 'font-medium text-gray-800 dark:text-gray-100',
+              "truncate text-sm",
+              hasUnread 
+                ? "font-bold text-gray-900 dark:text-white" 
+                : "font-medium text-gray-700 dark:text-[#c4c4e0]"
             )}
           >
             {displayName}
@@ -85,10 +93,10 @@ const ConversationListItem = ({
           {time ? (
             <span
               className={clsx(
-                'shrink-0 text-[11px] tabular-nums',
+                "shrink-0 text-[11px] tabular-nums",
                 hasUnread
-                  ? 'font-semibold text-brand-600 dark:text-brand-300'
-                  : 'text-gray-400 dark:text-gray-500',
+                  ? "font-semibold text-brand-600 dark:text-[#a78bfa]"
+                  : "font-normal text-gray-500 dark:text-[#6b6b8a]"
               )}
             >
               {time}
@@ -101,9 +109,7 @@ const ConversationListItem = ({
             className={clsx(
               'flex min-w-0 items-center gap-1 truncate text-xs',
               preview.isSystem && 'italic',
-              hasUnread
-                ? 'font-medium text-gray-700 dark:text-gray-200'
-                : 'text-gray-500 dark:text-gray-400',
+              hasUnread ? "text-gray-900 dark:text-[#a0a0c0]" : "text-gray-500 dark:text-[#6b6b8a]"
             )}
           >
             {preview.isImage ? (
@@ -113,11 +119,21 @@ const ConversationListItem = ({
           </span>
 
           <span className="flex shrink-0 items-center gap-1">
+            <button
+              onClick={onTogglePin}
+              className={clsx(
+                "p-1 rounded-md transition-opacity duration-200",
+                isPinned ? "opacity-100 text-indigo-400" : "opacity-0 group-hover:opacity-100 text-gray-500 hover:text-indigo-400"
+              )}
+              title={isPinned ? "Unpin conversation" : "Pin conversation"}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill={isPinned ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="17" x2="12" y2="22"></line>
+                <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path>
+              </svg>
+            </button>
             {isMuted ? (
-              <BellOff
-                className="h-3.5 w-3.5 text-gray-400 dark:text-gray-500"
-                aria-label="Muted"
-              />
+              <BellOff className="h-3.5 w-3.5 text-gray-500 dark:text-[#6b6b8a]" aria-label="Muted" />
             ) : null}
             {hasUnread ? <UnreadBadge count={unreadCount} /> : null}
           </span>

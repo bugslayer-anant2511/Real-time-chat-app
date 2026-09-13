@@ -43,3 +43,28 @@ export const searchMessages = async (conversationId, q, { limit = 30 } = {}) => 
   );
   return data;
 };
+
+export const getScheduledMessages = async (conversationId) => {
+  const { data } = await api.get('/messages/scheduled', { params: { conversationId } });
+  return data;
+};
+
+export const cancelScheduledMessage = async (messageId) => {
+  const { data } = await api.delete(`/messages/scheduled/${messageId}`);
+  return data;
+};
+
+export const togglePinMessage = async (messageId) => {
+  const { data } = await api.post(`/messages/${messageId}/pin`);
+  return data;
+};
+
+export const toggleStarMessage = async (messageId) => {
+  const { data } = await api.post(`/messages/${messageId}/star`);
+  return data;
+};
+
+export const getStarredMessages = async (conversationId) => {
+  const { data } = await api.get('/messages/starred', { params: { conversationId } });
+  return data;
+};

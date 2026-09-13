@@ -254,6 +254,10 @@ export const unblockUser = asyncHandler(async (req, res) => {
       participants: { $all: [requesterId, targetId] },
     });
     if (conversation) {
+      if (!conversation.isAccepted) {
+        conversation.isAccepted = true;
+        await conversation.save();
+      }
       const sysMsg = await Message.create({
         conversationId: conversation._id,
         sender: null,

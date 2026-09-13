@@ -17,6 +17,10 @@ import {
   Pencil,
   RefreshCw,
   Smile,
+  Star,
+  StarOff,
+  Pin,
+  PinOff,
   Trash2,
 } from 'lucide-react';
 
@@ -184,6 +188,13 @@ const BubbleMenu = ({
   onEdit,
   onDelete,
   onPickEmoji,
+  canStar,
+  isStarred,
+  onToggleStar,
+  canPin,
+  isPinned,
+  onTogglePin,
+  openUpwards,
 }) => {
   const containerRef = useRef(null);
   useOnClickOutside(
@@ -223,8 +234,9 @@ const BubbleMenu = ({
       role="menu"
       aria-label="Message actions"
       className={clsx(
-        'absolute z-20 w-48 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900',
-        isOwn ? 'right-0 top-full mt-1' : 'left-0 top-full mt-1',
+        'absolute z-50 w-48 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900',
+        isOwn ? 'right-0' : 'left-0',
+        openUpwards ? 'bottom-full mb-1' : 'top-full mt-1'
       )}
     >
       <div className="flex items-center justify-between gap-1 border-b border-gray-100 px-2 py-1.5 dark:border-gray-800">
@@ -247,6 +259,12 @@ const BubbleMenu = ({
       <div className="py-1">
         {canReply ? (
           <ItemButton icon={CornerUpLeft} label="Reply" onClick={onReply} />
+        ) : null}
+        {canPin ? (
+          <ItemButton icon={isPinned ? PinOff : Pin} label={isPinned ? 'Unpin' : 'Pin'} onClick={onTogglePin} />
+        ) : null}
+        {canStar ? (
+          <ItemButton icon={isStarred ? StarOff : Star} label={isStarred ? 'Unstar' : 'Star'} onClick={onToggleStar} />
         ) : null}
         {canCopy ? <ItemButton icon={Copy} label="Copy text" onClick={onCopy} /> : null}
         {canEdit ? <ItemButton icon={Pencil} label="Edit" onClick={onEdit} /> : null}
@@ -368,22 +386,31 @@ const MessageBubble = ({
   tickTooltip = '',
   currentUserId = null,
   isHighlighted = false,
+  isBlinking = false,
   onReply,
   onEdit,
   onDelete,
   onReact,
   onRetry,
+  onTogglePin,
+  onToggleStar,
 }) => {
   const isSystem = message?.type === 'system';
   const isDeleted = message?.deletedFor === 'everyone';
   const isImage = message?.type === 'image' && Boolean(message?.imageUrl);
   const isPending = Boolean(message?._pending);
   const isFailed = Boolean(message?._failed);
+  const isPinned = Boolean(message?.isPinned);
+  const isStarred = Boolean(
+    message?.starredBy?.includes(currentUserId) ||
+    message?.starredBy?.some(id => String(id) === String(currentUserId))
+  );
   const senderName =
     message?.sender?.displayName || message?.sender?.username || 'Unknown';
   const time = formatClockTime(message?.createdAt);
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuOpenUpwards, setMenuOpenUpwards] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
@@ -447,6 +474,8 @@ const MessageBubble = ({
   const canCopy = !isDeleted && !isSystem && typeof message?.text === 'string' && message.text.length > 0;
   const canReply = !isDeleted && !isSystem && !isPending && !isFailed && Boolean(message?._id);
   const canReact = !isDeleted && !isSystem && Boolean(message?._id);
+  const canPin = isAdmin && !isDeleted && !isSystem && Boolean(message?._id);
+  const canStar = !isDeleted && !isSystem && Boolean(message?._id);
 
   const showActionButton = !isSystem && !isDeleted && !isEditing;
 
@@ -643,12 +672,20 @@ const MessageBubble = ({
           isOwn ? 'items-end' : 'items-start',
           isHighlighted &&
             'bg-yellow-100/70 ring-2 ring-yellow-400 ring-offset-2 ring-offset-gray-50 dark:bg-yellow-500/10 dark:ring-yellow-300/70 dark:ring-offset-gray-950',
+          isBlinking && 'ww-blink-twice',
         )}
       >
         {!isOwn && isGroup && showName ? (
           <span className="px-1 text-[11px] font-medium text-brand-600 dark:text-brand-300">
             {senderName}
           </span>
+        ) : null}
+
+        {isPinned || isStarred ? (
+          <div className={clsx('flex gap-1 mb-0.5', isOwn && 'justify-end')}>
+            {isPinned && <Pin className="h-3 w-3 text-brand-500" aria-label="Pinned" />}
+            {isStarred && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" aria-label="Starred" />}
+          </div>
         ) : null}
 
         <div className={clsx('relative flex items-start gap-1', isOwn && 'flex-row-reverse')}>
@@ -671,10 +708,14 @@ const MessageBubble = ({
           </div>
 
           {showActionButton ? (
-            <div className="relative">
+            <div className={clsx("relative", menuOpen && "z-50")}>
               <button
                 type="button"
-                onClick={() => setMenuOpen((prev) => !prev)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMenuOpenUpwards(e.clientY > window.innerHeight / 2);
+                  setMenuOpen((prev) => !prev);
+                }}
                 aria-label="Message actions"
                 aria-haspopup="menu"
                 aria-expanded={menuOpen}
@@ -694,6 +735,12 @@ const MessageBubble = ({
                 onClose={() => setMenuOpen(false)}
                 isOwn={isOwn}
                 canReply={canReply}
+                canPin={canPin}
+                isPinned={isPinned}
+                onTogglePin={() => onTogglePin?.(message)}
+                canStar={canStar}
+                isStarred={isStarred}
+                onToggleStar={() => onToggleStar?.(message)}
                 canCopy={canCopy}
                 canEdit={canEdit}
                 canDelete={canDelete}
@@ -702,6 +749,7 @@ const MessageBubble = ({
                 onEdit={handleEditClick}
                 onDelete={handleDeleteClick}
                 onPickEmoji={canReact ? handleReactionToggle : undefined}
+                openUpwards={menuOpenUpwards}
               />
             </div>
           ) : null}

@@ -23,7 +23,7 @@ const TypingIndicator = ({ users = [], className }) => {
     <div
       role="status"
       aria-live="polite"
-      className={clsx('flex items-end gap-2 px-2 py-1', className)}
+      className={clsx('flex items-end gap-2 px-3 py-1', className)}
     >
       {showAvatar ? (
         <Avatar
@@ -32,22 +32,20 @@ const TypingIndicator = ({ users = [], className }) => {
           size="xs"
         />
       ) : null}
-      <span className="inline-flex items-center gap-1 rounded-2xl rounded-bl-sm bg-gray-100 px-3 py-2 text-xs text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-        <span className="flex items-center gap-0.5" aria-hidden="true">
-          <span
-            className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400 dark:bg-gray-500"
-            style={{ animationDelay: '0ms' }}
-          />
-          <span
-            className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400 dark:bg-gray-500"
-            style={{ animationDelay: '150ms' }}
-          />
-          <span
-            className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400 dark:bg-gray-500"
-            style={{ animationDelay: '300ms' }}
-          />
+      <span
+        className="inline-flex items-center gap-1.5 rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-xs"
+        style={{
+          background: 'rgba(255,255,255,0.07)',
+          border: '1px solid rgba(124,58,237,0.20)',
+          color: '#9090b8',
+        }}
+      >
+        <span className="flex items-center gap-1" aria-hidden="true">
+          <span className="ww-typing-dot" />
+          <span className="ww-typing-dot" />
+          <span className="ww-typing-dot" />
         </span>
-        <span className="ml-1">{label}</span>
+        <span className="ml-0.5">{label}</span>
       </span>
     </div>
   );

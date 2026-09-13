@@ -6,6 +6,11 @@ import {
   deleteMessageController,
   toggleReactionController,
   searchMessagesController,
+  togglePinMessageEndpoint,
+  toggleStarMessageEndpoint,
+  getStarredMessagesEndpoint,
+  getScheduledMessagesController,
+  cancelScheduledMessageController,
 } from '../controllers/message.controller.js';
 import { protect } from '../middlewares/auth.middleware.js';
 import { messageLimiter } from '../middlewares/rateLimiters.js';
@@ -158,6 +163,12 @@ messageRouter.use(protect);
  *       200: { description: Deleted }
  *       403: { description: Not allowed }
  */
+// Scheduled messages routes
+messageRouter.get('/scheduled', getScheduledMessagesController);
+messageRouter.delete('/scheduled/:id', validateObjectId('id'), cancelScheduledMessageController);
+
+messageRouter.get('/starred', getStarredMessagesEndpoint);
+
 messageRouter.patch(
   '/:id',
   validateObjectId('id'),
@@ -203,5 +214,8 @@ messageRouter.post(
   validateReaction,
   toggleReactionController,
 );
+
+messageRouter.post('/:id/pin', validateObjectId('id'), togglePinMessageEndpoint);
+messageRouter.post('/:id/star', validateObjectId('id'), toggleStarMessageEndpoint);
 
 export default messageRouter;

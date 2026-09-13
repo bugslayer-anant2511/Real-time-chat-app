@@ -184,6 +184,24 @@ export const NotificationProvider = ({ children }) => {
     }
   }, [unreadCount]);
 
+  const markConversationRead = useCallback((conversationId) => {
+    setNotifications((prev) => {
+      let unreadClearedCount = 0;
+      const next = prev.map((n) => {
+        if (!n.isRead && n.conversationId === conversationId) {
+          unreadClearedCount += 1;
+          return { ...n, isRead: true };
+        }
+        return n;
+      });
+      
+      if (unreadClearedCount > 0) {
+        setUnreadCount((current) => Math.max(0, current - unreadClearedCount));
+      }
+      return next;
+    });
+  }, []);
+
   const dismiss = useCallback(async (id) => {
     let snapshot;
     let wasUnread = false;
@@ -211,6 +229,7 @@ export const NotificationProvider = ({ children }) => {
       requestPermission,
       markRead,
       markAllRead,
+      markConversationRead,
       dismiss,
       activeConversationId,
       setActiveConversationId,
@@ -222,6 +241,7 @@ export const NotificationProvider = ({ children }) => {
       requestPermission,
       markRead,
       markAllRead,
+      markConversationRead,
       dismiss,
       activeConversationId,
     ],

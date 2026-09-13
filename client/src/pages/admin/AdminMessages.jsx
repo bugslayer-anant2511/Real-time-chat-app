@@ -288,7 +288,7 @@ const AdminMessages = () => {
               aria-hidden="true"
             />
             <input
-              type="search"
+              type="text"
               value={filter}
               onChange={(event) => setFilter(event.target.value)}
               placeholder="Filter loaded messages by text or sender…"

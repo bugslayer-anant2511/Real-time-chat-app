@@ -217,7 +217,7 @@ const UserSearchInput = ({
         />
         <input
           ref={inputRef}
-          type="search"
+          type="text"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder={placeholder}

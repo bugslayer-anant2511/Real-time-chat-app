@@ -7,17 +7,21 @@ import {
   Bell,
   BellOff,
   ChevronLeft,
+  Clock,
   Flag,
   LogOut,
   MoreVertical,
   Search,
   ShieldOff,
+  Star,
   Users,
 } from 'lucide-react';
 
 import Avatar from '../common/Avatar.jsx';
 import PresenceDot from './PresenceDot.jsx';
 import Spinner from '../common/Spinner.jsx';
+import StarredMessagesModal from './StarredMessagesModal.jsx';
+import ScheduledMessagesModal from './ScheduledMessagesModal.jsx';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import { useChatState } from '../../contexts/ChatStateContext.jsx';
 import { useSocket } from '../../contexts/SocketContext.jsx';
@@ -33,6 +37,7 @@ const ChatHeader = ({
   isLoading = false,
   onOpenSearch,
   onOpenGroupSettings,
+  onJumpToMessage,
 }) => {
   const navigate = useNavigate();
   const { user, updateUser } = useAuth();
@@ -40,6 +45,8 @@ const ChatHeader = ({
   const { upsertConversation, removeConversation, refreshConversations } = useChatState();
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showStarred, setShowStarred] = useState(false);
+  const [showScheduled, setShowScheduled] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
   const [isBlocking, setIsBlocking] = useState(false);
@@ -321,11 +328,19 @@ const ChatHeader = ({
   );
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-2 border-b border-gray-200 bg-white px-2 dark:border-gray-800 dark:bg-gray-900">
+    <header
+      className="relative z-50 flex h-14 shrink-0 items-center gap-2 px-2 bg-white/95 dark:bg-[#16162a]/95 backdrop-blur-md"
+      style={{
+        borderBottom: '1px solid rgba(124,58,237,0.15)',
+      }}
+    >
       <Link
         to="/chat"
         aria-label="Back to conversations"
-        className="rounded-md p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white md:hidden"
+        className="rounded-xl p-2 transition-colors md:hidden"
+        style={{ color: '#6b6b8a' }}
+        onMouseEnter={e => { e.currentTarget.style.color = '#a78bfa'; e.currentTarget.style.background = 'rgba(124,58,237,0.12)'; }}
+        onMouseLeave={e => { e.currentTarget.style.color = '#6b6b8a'; e.currentTarget.style.background = ''; }}
       >
         <ChevronLeft className="h-5 w-5" aria-hidden="true" />
       </Link>
@@ -360,7 +375,10 @@ const ChatHeader = ({
           aria-pressed={isMuted}
           aria-label={isMuted ? 'Unmute conversation' : 'Mute conversation'}
           title={isMuted ? 'Unmute conversation' : 'Mute conversation'}
-          className="rounded-md p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 disabled:opacity-50 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
+          className="rounded-xl p-2 transition-all duration-200 disabled:opacity-50"
+          style={{ color: '#6b6b8a' }}
+          onMouseEnter={e => { e.currentTarget.style.color = '#a78bfa'; e.currentTarget.style.background = 'rgba(124,58,237,0.12)'; }}
+          onMouseLeave={e => { e.currentTarget.style.color = '#6b6b8a'; e.currentTarget.style.background = ''; }}
         >
           {isMutating ? (
             <Spinner size="sm" />
@@ -376,7 +394,10 @@ const ChatHeader = ({
           onClick={onOpenSearch}
           aria-label="Search in conversation"
           title="Search in conversation"
-          className="hidden rounded-md p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white sm:inline-flex"
+          className="hidden rounded-xl p-2 transition-all duration-200 sm:inline-flex"
+          style={{ color: '#6b6b8a' }}
+          onMouseEnter={e => { e.currentTarget.style.color = '#a78bfa'; e.currentTarget.style.background = 'rgba(124,58,237,0.12)'; }}
+          onMouseLeave={e => { e.currentTarget.style.color = '#6b6b8a'; e.currentTarget.style.background = ''; }}
         >
           <Search className="h-4 w-4" aria-hidden="true" />
         </button>
@@ -388,14 +409,23 @@ const ChatHeader = ({
             aria-haspopup="menu"
             aria-expanded={menuOpen}
             aria-label="Conversation actions"
-            className="rounded-md p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
+            className="rounded-xl p-2 transition-all duration-200"
+            style={{ color: '#6b6b8a' }}
+            onMouseEnter={e => { e.currentTarget.style.color = '#a78bfa'; e.currentTarget.style.background = 'rgba(124,58,237,0.12)'; }}
+            onMouseLeave={e => { e.currentTarget.style.color = '#6b6b8a'; e.currentTarget.style.background = ''; }}
           >
             <MoreVertical className="h-4 w-4" aria-hidden="true" />
           </button>
           {menuOpen ? (
             <div
               role="menu"
-              className="absolute right-0 z-10 mt-1 w-52 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-800 dark:bg-gray-900"
+              className="absolute right-0 z-10 mt-1.5 w-52 overflow-hidden rounded-xl ww-scale-in"
+              style={{
+                background: 'rgba(22,22,42,0.97)',
+                backdropFilter: 'blur(20px)',
+                border: '1px solid rgba(124,58,237,0.22)',
+                boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
+              }}
             >
               {!isGroup && otherParticipant ? (
                 <button
@@ -403,19 +433,58 @@ const ChatHeader = ({
                   role="menuitem"
                   disabled={isBlocking}
                   onClick={isBlocked ? handleUnblockUser : handleBlockUser}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-950/30"
+                  className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm transition-colors disabled:opacity-50"
+                  style={{ color: '#fb7185' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(244,63,94,0.10)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = ''; }}
                 >
                   <ShieldOff className="h-4 w-4" aria-hidden="true" />
                   <span>{isBlocked ? 'Unblock user' : 'Block user'}</span>
                 </button>
               ) : null}
+
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setMenuOpen(false);
+                  setShowStarred(true);
+                }}
+                className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm transition-colors"
+                style={{ color: '#fbbf24' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(251,191,36,0.10)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = ''; }}
+              >
+                <Star className="h-4 w-4" aria-hidden="true" />
+                <span>Starred messages</span>
+              </button>
+
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setMenuOpen(false);
+                  setShowScheduled(true);
+                }}
+                className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm transition-colors"
+                style={{ color: '#818cf8' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(129,140,248,0.10)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = ''; }}
+              >
+                <Clock className="h-4 w-4" aria-hidden="true" />
+                <span>Scheduled messages</span>
+              </button>
+
               {isGroup ? (
                 <button
                   type="button"
                   role="menuitem"
                   disabled={isLeaving}
                   onClick={handleLeaveGroup}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-950/30"
+                  className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm transition-colors disabled:opacity-50"
+                  style={{ color: '#fb7185' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(244,63,94,0.10)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = ''; }}
                 >
                   <LogOut className="h-4 w-4" aria-hidden="true" />
                   <span>Leave group</span>
@@ -426,7 +495,10 @@ const ChatHeader = ({
                 role="menuitem"
                 disabled={isMutating}
                 onClick={handleToggleArchive}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-800"
+                className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm transition-colors"
+                style={{ color: '#c4b5fd' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(124,58,237,0.12)'; e.currentTarget.style.color = '#fff'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.color = '#c4b5fd'; }}
               >
                 <Archive className="h-4 w-4" aria-hidden="true" />
                 <span>{isArchived ? 'Unarchive chat' : 'Archive chat'}</span>
@@ -435,15 +507,33 @@ const ChatHeader = ({
                 type="button"
                 role="menuitem"
                 onClick={handleReport}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-800"
+                className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm transition-colors"
+                style={{ color: '#c4b5fd' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(124,58,237,0.12)'; e.currentTarget.style.color = '#fff'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.color = '#c4b5fd'; }}
               >
                 <Flag className="h-4 w-4" aria-hidden="true" />
                 <span>Report</span>
               </button>
             </div>
-          ) : null}
+            ) : null}
         </div>
       </div>
+      
+      {showStarred && conversationId ? (
+        <StarredMessagesModal
+          conversationId={conversationId}
+          onClose={() => setShowStarred(false)}
+          onJumpToMessage={onJumpToMessage}
+        />
+      ) : null}
+
+      {showScheduled && conversationId ? (
+        <ScheduledMessagesModal
+          conversationId={conversationId}
+          onClose={() => setShowScheduled(false)}
+        />
+      ) : null}
     </header>
   );
 };

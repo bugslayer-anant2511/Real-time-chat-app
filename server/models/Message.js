@@ -80,6 +80,22 @@ const messageSchema = new Schema(
       ref: 'Message',
       default: null,
     },
+    isPinned: { type: Boolean, default: false },
+    pinnedAt: { type: Date, default: null },
+    pinnedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+    starredBy: {
+      type: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+      default: [],
+    },
+    status: {
+      type: String,
+      enum: ['draft', 'scheduled', 'sent'],
+      default: 'sent',
+    },
+    scheduledFor: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true },
 );

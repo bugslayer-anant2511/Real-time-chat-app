@@ -78,6 +78,11 @@ const conversationSchema = new Schema(
       default: () => new Map(),
     },
     isActive: { type: Boolean, default: true, index: true },
+    isAccepted: { type: Boolean, default: false },
+    pinnedBy: {
+      type: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+      default: [],
+    },
   },
   { timestamps: true },
 );

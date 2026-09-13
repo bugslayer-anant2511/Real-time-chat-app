@@ -22,6 +22,7 @@ import notificationRoutes from './routes/notification.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import { createSocketServer } from './config/socket.js';
 import { registerSocketHandlers } from './sockets/index.js';
+import { startMessageScheduler } from './jobs/messageScheduler.js';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec, swaggerUiOptions } from './config/swagger.js';
 
@@ -117,6 +118,9 @@ app.set('io', io);
 
 const start = async () => {
   await connectDB();
+  
+  startMessageScheduler(io);
+
   httpServer.listen(env.PORT, () => {
     console.log(`[server] listening on http://localhost:${env.PORT} (${env.NODE_ENV})`);
   });

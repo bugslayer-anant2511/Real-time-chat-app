@@ -14,6 +14,8 @@ import {
   deleteConversation,
   markRead,
   getUnreadSummary,
+  acceptFriendRequestEndpoint,
+  togglePinConversationEndpoint,
 } from '../controllers/conversation.controller.js';
 import { protect } from '../middlewares/auth.middleware.js';
 import {
@@ -297,6 +299,32 @@ router.post('/:id/archive', validateObjectId('id'), toggleArchive);
  *       200: { description: Read receipt broadcast }
  */
 router.post('/:id/read', validateObjectId('id'), markRead);
+
+/**
+ * @openapi
+ * /api/conversations/{id}/accept:
+ *   post:
+ *     tags: [Conversations]
+ *     summary: Accept a pending friend request
+ *     parameters:
+ *       - $ref: '#/components/parameters/ConversationId'
+ *     responses:
+ *       200: { description: Friend request accepted }
+ */
+router.post('/:id/accept', validateObjectId('id'), acceptFriendRequestEndpoint);
+
+/**
+ * @openapi
+ * /api/conversations/{id}/pin:
+ *   post:
+ *     tags: [Conversations]
+ *     summary: Toggle pin status of a conversation
+ *     parameters:
+ *       - $ref: '#/components/parameters/ConversationId'
+ *     responses:
+ *       200: { description: Pin toggled }
+ */
+router.post('/:id/pin', validateObjectId('id'), togglePinConversationEndpoint);
 
 /**
  * @openapi

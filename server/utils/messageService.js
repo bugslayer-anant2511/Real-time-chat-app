@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { Message } from '../models/Message.js';
 import { Conversation } from '../models/Conversation.js';
 import { User } from '../models/User.js';
+import { Notification } from '../models/Notification.js';
 import { ApiError } from './apiError.js';
 import { assertParticipant, resetUnread } from './conversationService.js';
 import { escapeRegex } from './escapeRegex.js';
@@ -96,8 +97,8 @@ const getDirectBlockState = async ({ conversation, viewerId }) => {
   }
 
   const [me, them] = await Promise.all([
-    User.findById(vid).select('blockedUsers').lean(),
-    User.findById(otherId).select('blockedUsers').lean(),
+    User.findById(vid).select('blockedUsers role').lean(),
+    User.findById(otherId).select('blockedUsers role').lean(),
   ]);
 
   const myBlock = (me?.blockedUsers || []).find(
@@ -119,6 +120,8 @@ const getDirectBlockState = async ({ conversation, viewerId }) => {
     cutoffAt,
     viewerBlocked: Boolean(myBlock),
     theyBlocked: Boolean(theirBlock),
+    meAdmin: me?.role === ROLES.ADMIN,
+    theyAdmin: them?.role === ROLES.ADMIN,
   };
 };
 
@@ -130,6 +133,7 @@ export const createMessage = async ({
   imageUrl = '',
   imagePublicId = '',
   replyTo = null,
+  scheduledFor = null,
 }) => {
   const cid = toIdString(conversationId);
   const sid = toIdString(senderId);
@@ -156,7 +160,7 @@ export const createMessage = async ({
   let otherUserId = null;
 
   if (conversation.type === CONVERSATION_TYPES.DIRECT) {
-    const { viewerBlocked, theyBlocked, otherId } = await getDirectBlockState({
+    const { viewerBlocked, theyBlocked, otherId, meAdmin, theyAdmin } = await getDirectBlockState({
       conversation,
       viewerId: sid,
     });
@@ -167,6 +171,24 @@ export const createMessage = async ({
       blockedByOther = true;
       otherUserId = otherId;
     }
+
+    if (!conversation.isAccepted) {
+      if (meAdmin || theyAdmin) {
+        conversation.isAccepted = true;
+        await conversation.save();
+      } else if (String(conversation.createdBy) === sid) {
+        const messageCount = await Message.countDocuments({
+          conversationId: cid,
+          sender: sid,
+        });
+        if (messageCount >= 5) {
+          throw ApiError.forbidden('Wait for the user to accept your friend request before sending more messages');
+        }
+      } else {
+        conversation.isAccepted = true;
+        await conversation.save();
+      }
+    }
   }
 
   const payload = {
@@ -176,6 +198,21 @@ export const createMessage = async ({
     replyTo: null,
     hiddenFor: blockedByOther && otherUserId ? [new Types.ObjectId(otherUserId)] : [],
   };
+
+  if (scheduledFor) {
+    const scheduledDate = new Date(scheduledFor);
+    if (isNaN(scheduledDate.getTime())) {
+      throw ApiError.badRequest('Invalid scheduledFor date');
+    }
+    if (scheduledDate <= new Date()) {
+      throw ApiError.badRequest('scheduledFor must be in the future');
+    }
+    if (scheduledDate.getTime() > Date.now() + 6 * 60 * 60 * 1000) {
+      throw ApiError.badRequest('Messages can only be scheduled up to 6 hours in advance');
+    }
+    payload.status = 'scheduled';
+    payload.scheduledFor = scheduledDate;
+  }
 
   if (type === MESSAGE_TYPES.TEXT) {
     const trimmed = typeof text === 'string' ? text.trim() : '';
@@ -197,6 +234,17 @@ export const createMessage = async ({
     payload.imageUrl = imageUrl;
     payload.imagePublicId =
       typeof imagePublicId === 'string' ? imagePublicId : '';
+      
+    // Allow optional caption
+    const trimmed = typeof text === 'string' ? text.trim() : '';
+    if (trimmed.length > MESSAGE_TEXT_MAX_LENGTH) {
+      throw ApiError.badRequest(
+        `Image caption must be at most ${MESSAGE_TEXT_MAX_LENGTH} characters`,
+      );
+    }
+    if (trimmed.length > 0) {
+      payload.text = trimmed;
+    }
   }
 
   if (replyTo) {
@@ -240,6 +288,11 @@ export const markConversationAsRead = async ({ conversationId, userId }) => {
   );
 
   await resetUnread(cid, uid);
+  
+  await Notification.updateMany(
+    { recipient: uid, conversationId: cid, isRead: false },
+    { $set: { isRead: true } }
+  );
 
   return { matched: result.matchedCount ?? 0, modified: result.modifiedCount ?? 0 };
 };
@@ -323,6 +376,7 @@ export const listMessages = async ({
   const filter = {
     conversationId: cid,
     hiddenFor: { $ne: new Types.ObjectId(uid) },
+    status: { $ne: 'scheduled' },
   };
 
   if (conversation.type === CONVERSATION_TYPES.DIRECT) {
@@ -574,6 +628,99 @@ export const searchMessages = async ({
     .populate(MESSAGE_POPULATE);
 
   return { items, total: items.length };
+};
+
+export const togglePinMessage = async ({ messageId, userId }) => {
+  const mid = toIdString(messageId);
+  const uid = toIdString(userId);
+  if (!mid || !isValidObjectId(mid)) throw ApiError.badRequest('Invalid message id');
+  if (!uid || !isValidObjectId(uid)) throw ApiError.badRequest('Invalid user id');
+
+  const message = await Message.findById(mid);
+  if (!message) throw ApiError.notFound('Message not found');
+
+  const conversation = await Conversation.findById(message.conversationId);
+  if (!conversation) throw ApiError.notFound('Conversation not found');
+  assertParticipant(conversation, uid);
+
+  message.isPinned = !message.isPinned;
+  message.pinnedAt = message.isPinned ? new Date() : null;
+  message.pinnedBy = message.isPinned ? uid : null;
+  await message.save();
+
+  return await Message.findById(mid).populate(MESSAGE_POPULATE);
+};
+
+export const toggleStarMessage = async ({ messageId, userId }) => {
+  const mid = toIdString(messageId);
+  const uid = toIdString(userId);
+  if (!mid || !isValidObjectId(mid)) throw ApiError.badRequest('Invalid message id');
+  if (!uid || !isValidObjectId(uid)) throw ApiError.badRequest('Invalid user id');
+
+  const message = await Message.findById(mid);
+  if (!message) throw ApiError.notFound('Message not found');
+
+  const conversation = await Conversation.findById(message.conversationId);
+  if (!conversation) throw ApiError.notFound('Conversation not found');
+  assertParticipant(conversation, uid);
+
+  const starIndex = message.starredBy.findIndex((id) => String(id) === uid);
+  if (starIndex === -1) {
+    message.starredBy.push(uid);
+  } else {
+    message.starredBy.splice(starIndex, 1);
+  }
+  await message.save();
+
+  return await Message.findById(mid).populate(MESSAGE_POPULATE);
+};
+
+export const getStarredMessages = async ({ userId, conversationId }) => {
+  const uid = toIdString(userId);
+  if (!uid || !isValidObjectId(uid)) throw ApiError.badRequest('Invalid user id');
+
+  const filter = { starredBy: uid };
+  if (conversationId) {
+    const cid = toIdString(conversationId);
+    if (isValidObjectId(cid)) {
+      filter.conversationId = cid;
+    }
+  }
+
+  const items = await Message.find(filter)
+    .sort({ createdAt: -1 })
+    .populate(MESSAGE_POPULATE);
+
+  return { items, total: items.length };
+};
+
+export const getScheduledMessages = async ({ userId, conversationId }) => {
+  const uid = toIdString(userId);
+  if (!uid || !isValidObjectId(uid)) throw ApiError.badRequest('Invalid user id');
+
+  const filter = { sender: uid, status: 'scheduled' };
+  if (conversationId) {
+    const cid = toIdString(conversationId);
+    if (isValidObjectId(cid)) filter.conversationId = cid;
+  }
+
+  const items = await Message.find(filter)
+    .sort({ scheduledFor: 1 })
+    .populate(MESSAGE_POPULATE);
+
+  return { items, total: items.length };
+};
+
+export const cancelScheduledMessage = async ({ messageId, userId }) => {
+  const mid = toIdString(messageId);
+  const uid = toIdString(userId);
+  if (!mid || !isValidObjectId(mid)) throw ApiError.badRequest('Invalid message id');
+
+  const message = await Message.findOne({ _id: mid, sender: uid, status: 'scheduled' });
+  if (!message) throw ApiError.notFound('Scheduled message not found');
+
+  await message.deleteOne();
+  return { success: true };
 };
 
 export const _internals = {

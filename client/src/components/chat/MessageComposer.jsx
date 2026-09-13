@@ -10,7 +10,7 @@ import {
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
 import EmojiPicker, { EmojiStyle, Theme as EmojiTheme } from 'emoji-picker-react';
-import { ImagePlus, Keyboard, Send, Smile, X } from 'lucide-react';
+import { ImagePlus, Keyboard, Send, Smile, X, Clock } from 'lucide-react';
 
 import Spinner from '../common/Spinner.jsx';
 import Tooltip from '../common/Tooltip.jsx';
@@ -73,6 +73,9 @@ const MessageComposer = ({
   const [isUploading, setIsUploading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [isEmojiOpen, setIsEmojiOpen] = useState(false);
+  const [scheduledFor, setScheduledFor] = useState('');
+  const [customDate, setCustomDate] = useState('');
+  const [isScheduleOpen, setIsScheduleOpen] = useState(false);
 
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -349,12 +352,12 @@ const MessageComposer = ({
         body: trimmed,
         imageUrl,
       });
-      onOptimisticAdd?.(optimistic);
-
-      setText('');
-      setAttachment(null);
-      onCancelReply?.();
-      onAfterSend?.();
+      let calculatedScheduledFor = null;
+      if (scheduledFor === 'custom' && customDate) {
+        calculatedScheduledFor = new Date(customDate).toISOString();
+      } else if (scheduledFor && scheduledFor !== 'custom') {
+        calculatedScheduledFor = new Date(Date.now() + parseInt(scheduledFor, 10) * 60000).toISOString();
+      }
 
       const payload = {
         conversationId,
@@ -364,34 +367,62 @@ const MessageComposer = ({
         imagePublicId,
         replyTo: replyToId,
         clientTempId,
+        scheduledFor: calculatedScheduledFor,
       };
+
+      const isScheduled = Boolean(calculatedScheduledFor);
+
+      if (!isScheduled) {
+        onOptimisticAdd?.(optimistic);
+      }
 
       let serverMessage = null;
       try {
-        serverMessage = await sendOverSocket(payload);
-      } catch (socketErr) {
-        const reason = socketErr?.message || '';
-        const isRecoverable = reason === 'disconnected' || reason === 'timeout';
-        if (!isRecoverable) throw socketErr;
-        serverMessage = await sendOverRest(payload);
+        if (isScheduled) {
+          // Scheduled messages must go over REST, not socket
+          serverMessage = await sendOverRest(payload);
+        } else {
+          try {
+            serverMessage = await sendOverSocket(payload);
+          } catch (socketErr) {
+            const reason = socketErr?.message || '';
+            const isRecoverable = reason === 'disconnected' || reason === 'timeout';
+            if (!isRecoverable) throw socketErr;
+            serverMessage = await sendOverRest(payload);
+          }
+        }
+      } catch (err) {
+        throw err;
       }
 
-      onOptimisticUpdate?.(clientTempId, {
-        ...serverMessage,
-        clientTempId,
-        _pending: false,
-        _failed: false,
-      });
+      if (isScheduled) {
+        toast.success('Message scheduled successfully');
+        setScheduledFor('');
+        setCustomDate('');
+        setIsScheduleOpen(false);
+      } else {
+        onOptimisticUpdate?.(clientTempId, {
+          ...serverMessage,
+          clientTempId,
+          _pending: false,
+          _failed: false,
+        });
+      }
+      
+      setText('');
+      setAttachment(null);
+      onCancelReply?.();
+      onAfterSend?.();
     } catch (err) {
       const message =
         err?.response?.data?.message || err?.message || 'Failed to send message';
       toast.error(message);
-      if (optimistic) {
-        onOptimisticUpdate?.(clientTempId, {
-          _pending: false,
-          _failed: true,
-        });
-      }
+        if (optimistic && !isScheduled) {
+          onOptimisticUpdate?.(clientTempId, {
+            _pending: false,
+            _failed: true,
+          });
+        }
     } finally {
       setIsSending(false);
       const isMobile = /Mobi|Android/i.test(navigator.userAgent);
@@ -410,6 +441,8 @@ const MessageComposer = ({
     onOptimisticAdd,
     onOptimisticUpdate,
     replyTo,
+    scheduledFor,
+    customDate,
     sendOverRest,
     sendOverSocket,
     stopTyping,
@@ -496,15 +529,23 @@ const MessageComposer = ({
   const sendVisuallyMuted = canSend && !isConnected;
 
   return (
-    <div className="relative border-t border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+    <div
+      className="relative bg-white/95 dark:bg-[#16162a]/95 backdrop-blur-md"
+      style={{
+        borderTop: '1px solid rgba(124,58,237,0.16)',
+      }}
+    >
       {replyTo ? (
-        <div className="flex items-start gap-2 border-b border-gray-100 bg-gray-50 px-3 py-2 dark:border-gray-800 dark:bg-gray-900/60">
-          <span className="mt-0.5 inline-block h-full w-0.5 self-stretch rounded bg-brand-500" aria-hidden="true" />
+        <div
+          className="flex items-start gap-2 px-3 py-2 bg-brand-50/50 dark:bg-[rgba(124,58,237,0.06)]"
+          style={{ borderBottom: '1px solid rgba(124,58,237,0.12)' }}
+        >
+          <span className="mt-0.5 inline-block h-full w-0.5 self-stretch rounded ww-gradient-bg" aria-hidden="true" />
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold text-brand-600 dark:text-brand-300">
+            <p className="text-[11px] font-semibold text-brand-600 dark:text-[#a78bfa]">
               Replying to {replyTo?.sender?.displayName || replyTo?.sender?.username || 'message'}
             </p>
-            <p className="truncate text-xs text-gray-600 dark:text-gray-400">
+            <p className="truncate text-xs text-gray-600 dark:text-[#6b6b8a]">
               {onelinePreview(replyTo?.text) ||
                 (replyTo?.type === 'image' ? '📷 Photo' : 'Message')}
             </p>
@@ -512,7 +553,7 @@ const MessageComposer = ({
           <button
             type="button"
             onClick={onCancelReply}
-            className="rounded-full p-1 text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+            className="rounded-full p-1 transition-colors text-gray-500 hover:text-brand-600 hover:bg-brand-100 dark:text-[#6b6b8a] dark:hover:text-[#a78bfa] dark:hover:bg-[rgba(124,58,237,0.12)]"
             aria-label="Cancel reply"
           >
             <X className="h-3.5 w-3.5" aria-hidden="true" />
@@ -521,24 +562,28 @@ const MessageComposer = ({
       ) : null}
 
       {attachmentPreview ? (
-        <div className="flex items-center gap-3 border-b border-gray-100 bg-gray-50 px-3 py-2 dark:border-gray-800 dark:bg-gray-900/60">
+        <div
+          className="flex items-center gap-3 px-3 py-2 bg-gray-50 dark:bg-[#16162a]/80"
+          style={{ borderBottom: '1px solid rgba(124,58,237,0.12)' }}
+        >
           <div className="relative">
             <img
               src={attachmentPreview}
               alt="Attachment preview"
-              className="h-16 w-16 rounded-lg object-cover ring-1 ring-gray-200 dark:ring-gray-700"
+              className="h-16 w-16 rounded-xl object-cover"
+              style={{ border: '1px solid rgba(124,58,237,0.30)' }}
             />
             {isUploading ? (
-              <span className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/40">
+              <span className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/50">
                 <Spinner size="sm" />
               </span>
             ) : null}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-medium text-gray-700 dark:text-gray-200">
+            <p className="truncate text-xs font-medium" style={{ color: '#c4b5fd' }}>
               {attachment?.name || 'Image'}
             </p>
-            <p className="text-[11px] text-gray-500 dark:text-gray-400">
+            <p className="text-[11px]" style={{ color: '#6b6b8a' }}>
               Add an optional caption below, then send.
             </p>
           </div>
@@ -546,7 +591,10 @@ const MessageComposer = ({
             type="button"
             onClick={clearAttachment}
             disabled={isUploading || isSending}
-            className="rounded-full p-1 text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+            className="rounded-full p-1 transition-colors disabled:opacity-50"
+            style={{ color: '#6b6b8a' }}
+            onMouseEnter={e => { e.currentTarget.style.color = '#fb7185'; e.currentTarget.style.background = 'rgba(244,63,94,0.10)'; }}
+            onMouseLeave={e => { e.currentTarget.style.color = '#6b6b8a'; e.currentTarget.style.background = ''; }}
             aria-label="Remove attachment"
           >
             <X className="h-4 w-4" aria-hidden="true" />
@@ -594,14 +642,16 @@ const MessageComposer = ({
             type="button"
             onClick={handleAttachClick}
             disabled={isSending || isUploading}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-100 hover:text-brand-600 disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-brand-300"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50 text-gray-500 hover:text-brand-600 hover:bg-brand-100 dark:text-[#6b6b8a] dark:hover:text-[#a78bfa] dark:hover:bg-[rgba(124,58,237,0.12)]"
             aria-label="Attach image"
           >
             <ImagePlus className="h-5 w-5" aria-hidden="true" />
           </button>
         </Tooltip>
 
-        <div className="flex min-w-0 flex-1 items-end gap-1 rounded-2xl bg-gray-100 px-3 py-1.5 dark:bg-gray-800">
+        <div
+          className="flex min-w-0 flex-1 items-end gap-1 rounded-2xl px-3 py-1.5 bg-gray-100/50 dark:bg-[rgba(255,255,255,0.06)] border border-gray-200 dark:border-[rgba(124,58,237,0.20)]"
+        >
           <textarea
             ref={textareaRef}
             value={text}
@@ -614,8 +664,7 @@ const MessageComposer = ({
             rows={1}
             maxLength={Math.floor(MAX_TEXT_LENGTH * 1.1)}
             aria-label="Message text"
-            className="scrollbar-thin max-h-40 min-h-6 w-full resize-none border-0 bg-transparent text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none dark:text-gray-100 dark:placeholder-gray-500"
-            style={{ outline: 'none', boxShadow: 'none' }}
+            className="scrollbar-thin max-h-40 min-h-6 w-full resize-none bg-transparent text-sm text-gray-900 dark:text-[#e2e2f0] caret-brand-600 dark:caret-[#a78bfa] !border-0 !outline-none !ring-0 !shadow-none focus:!border-transparent focus:!ring-0 focus:!outline-none focus:!shadow-none focus-visible:!shadow-none focus-visible:!ring-0"
           />
 
           <Tooltip content={isEmojiOpen ? 'Show keyboard' : 'Choose emoji'} position="top">
@@ -624,11 +673,10 @@ const MessageComposer = ({
               onClick={handleEmojiToggle}
               disabled={isSending}
               className={clsx(
-                'flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors',
-                isEmojiOpen
-                  ? 'bg-brand-100 text-brand-600 dark:bg-brand-900/40 dark:text-brand-300'
-                  : 'text-gray-500 hover:bg-gray-200 hover:text-brand-600 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-brand-300',
-                'disabled:cursor-not-allowed disabled:opacity-50',
+                'flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50',
+                isEmojiOpen 
+                  ? 'bg-brand-100 text-brand-600 dark:bg-[rgba(124,58,237,0.20)] dark:text-[#a78bfa]'
+                  : 'text-gray-500 hover:text-brand-600 hover:bg-brand-100 dark:text-[#6b6b8a] dark:hover:text-[#a78bfa] dark:hover:bg-[rgba(124,58,237,0.10)]'
               )}
               aria-label={isEmojiOpen ? 'Show keyboard' : 'Insert emoji'}
               aria-expanded={isEmojiOpen}
@@ -642,20 +690,91 @@ const MessageComposer = ({
           </Tooltip>
         </div>
 
+        {isScheduleOpen && (
+          <div className="absolute bottom-full right-12 z-30 mb-2 rounded-xl bg-white p-2 shadow-2xl dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+            <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">
+              Schedule Message
+            </label>
+            <select
+              value={scheduledFor}
+              onChange={(e) => setScheduledFor(e.target.value)}
+              className="w-full rounded border-gray-300 bg-gray-50 p-1 text-xs text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+            >
+              <option value="" disabled>Select time</option>
+              <option value="5">In 5 minutes</option>
+              <option value="15">In 15 minutes</option>
+              <option value="30">In 30 minutes</option>
+              <option value="60">In 1 hour</option>
+              <option value="120">In 2 hours</option>
+              <option value="360">In 6 hours</option>
+              <option value="custom">Custom...</option>
+            </select>
+            {scheduledFor === 'custom' && (
+              <div className="mt-2">
+                <input
+                  type="datetime-local"
+                  value={customDate}
+                  onChange={(e) => setCustomDate(e.target.value)}
+                  className="w-full rounded border-gray-300 bg-gray-50 p-1 text-xs text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+            )}
+            <div className="mt-2 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setScheduledFor('');
+                  setCustomDate('');
+                  setIsScheduleOpen(false);
+                }}
+                className="rounded px-2 py-1 text-[10px] text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                Clear
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsScheduleOpen(false)}
+                className="rounded bg-indigo-500 px-2 py-1 text-[10px] text-white hover:bg-indigo-600"
+              >
+                Set
+              </button>
+            </div>
+          </div>
+        )}
+
+        <Tooltip label={scheduledFor ? 'Scheduled time set' : 'Schedule message'} position="top">
+          <button
+            type="button"
+            onClick={() => setIsScheduleOpen(!isScheduleOpen)}
+            disabled={isSending || isUploading || !canSend}
+            className={clsx(
+              'flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50',
+              scheduledFor
+                ? 'bg-pink-100 text-pink-500 dark:bg-[rgba(236,72,153,0.15)] dark:text-[#ec4899]'
+                : 'text-gray-500 hover:text-pink-500 hover:bg-pink-50 dark:text-[#6b6b8a] dark:hover:text-[#ec4899] dark:hover:bg-[rgba(236,72,153,0.12)]'
+            )}
+            aria-label="Schedule message"
+          >
+            <Clock className="h-5 w-5" aria-hidden="true" />
+          </button>
+        </Tooltip>
+
         <Tooltip label={sendTooltipLabel} position="top">
           <button
             type="submit"
             disabled={!canSend}
             onMouseDown={(e) => e.preventDefault()}
             aria-disabled={!canSend || sendVisuallyMuted}
-            className={clsx(
-              'flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all',
-              !canSend
-                ? 'cursor-not-allowed bg-gray-200 text-gray-400 dark:bg-gray-800 dark:text-gray-600'
-                : sendVisuallyMuted
-                ? 'bg-amber-500/80 text-white shadow-sm hover:bg-amber-500 active:scale-95 dark:bg-amber-600/80 dark:hover:bg-amber-600'
-                : 'bg-brand-600 text-white shadow-sm hover:bg-brand-700 active:scale-95 dark:bg-brand-500 dark:hover:bg-brand-400',
-            )}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-200 ww-send-pop"
+            style={!canSend
+              ? { background: 'rgba(255,255,255,0.06)', color: '#4a4a6a', cursor: 'not-allowed' }
+              : sendVisuallyMuted
+              ? { background: 'rgba(245,158,11,0.85)', color: '#fff' }
+              : {
+                  background: 'linear-gradient(135deg, #7c3aed, #ec4899)',
+                  boxShadow: '0 2px 12px rgba(124,58,237,0.50)',
+                  color: '#fff',
+                }}
             aria-label={
               sendVisuallyMuted ? 'Send message (offline)' : 'Send message'
             }
@@ -673,21 +792,15 @@ const MessageComposer = ({
       {(showCounter || isOverLimit || !isConnected) ? (
         <div className="flex items-center justify-between gap-2 px-4 pb-1.5 text-[10px]">
           <span
-            className={clsx(
-              'truncate',
-              isConnected ? 'text-gray-400 dark:text-gray-500' : 'text-amber-600 dark:text-amber-400',
-            )}
+            className="truncate"
+            style={{ color: isConnected ? '#4a4a6a' : '#f59e0b' }}
           >
             {isConnected ? '' : 'Offline — message will be sent over HTTP.'}
           </span>
           {showCounter || isOverLimit ? (
             <span
-              className={clsx(
-                'tabular-nums',
-                isOverLimit
-                  ? 'font-medium text-red-600 dark:text-red-400'
-                  : 'text-gray-400 dark:text-gray-500',
-              )}
+              className="tabular-nums"
+              style={{ color: isOverLimit ? '#fb7185' : '#4a4a6a', fontWeight: isOverLimit ? 500 : 400 }}
             >
               {remaining}
             </span>
@@ -696,7 +809,10 @@ const MessageComposer = ({
       ) : null}
 
       {isEmojiOpen && isMobile ? (
-        <div className="w-full border-t border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-950 flex justify-center py-2 shrink-0">
+        <div
+          className="w-full flex justify-center py-2 shrink-0"
+          style={{ borderTop: '1px solid rgba(124,58,237,0.15)' }}
+        >
           <EmojiPicker
             onEmojiClick={handleEmojiSelect}
             theme={emojiTheme}

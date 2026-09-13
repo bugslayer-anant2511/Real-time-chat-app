@@ -7,6 +7,8 @@ import {
   findOrCreateDirectConversation,
   assertParticipant,
   assertGroupAdmin,
+  acceptFriendRequest,
+  togglePinConversation,
 } from '../utils/conversationService.js';
 import {
   createSystemMessage,
@@ -36,7 +38,7 @@ const emitSystemMessage = async (io, message) => {
 };
 
 const PARTICIPANT_PROJECTION =
-  '_id username displayName avatarUrl isOnline lastSeenAt preferences.showOnlineStatus status';
+  '_id username displayName avatarUrl isOnline lastSeenAt preferences.showOnlineStatus status role';
 
 const idEquals = (a, b) => String(a) === String(b);
 
@@ -817,5 +819,37 @@ export const deleteConversation = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     message: updated?.isActive ? 'Left conversation' : 'Conversation closed',
+  });
+});
+
+// POST /api/conversations/:id/accept
+export const acceptFriendRequestEndpoint = asyncHandler(async (req, res) => {
+  const conversation = await acceptFriendRequest(req.params.id, req.user._id);
+
+  const io = req.app.get('io');
+  if (io) {
+    try {
+      const socketsModule = await import('../sockets/message.socket.js');
+      if (socketsModule?.emitConversationUpdate) {
+        socketsModule.emitConversationUpdate(io, conversation);
+      }
+    } catch (err) {}
+  }
+
+  res.status(200).json({
+    success: true,
+    message: 'Friend request accepted',
+    data: serializeConversation(conversation, req.user._id),
+  });
+});
+
+// POST /api/conversations/:id/pin
+export const togglePinConversationEndpoint = asyncHandler(async (req, res) => {
+  const conversation = await togglePinConversation(req.params.id, req.user._id);
+
+  res.status(200).json({
+    success: true,
+    message: 'Conversation pin toggled',
+    data: serializeConversation(conversation, req.user._id),
   });
 });

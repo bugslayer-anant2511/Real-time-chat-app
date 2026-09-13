@@ -14,11 +14,13 @@ const Spinner = ({ size = 'md', fullPage = false, label = 'Loading…', classNam
       aria-label={label}
       className={clsx(
         'inline-block animate-spin rounded-full border-solid',
-        'border-brand-500/30 border-t-brand-500',
-        'dark:border-brand-400/30 dark:border-t-brand-400',
         SIZE_MAP[size] ?? SIZE_MAP.md,
         className,
       )}
+      style={{
+        borderColor: 'rgba(124,58,237,0.25)',
+        borderTopColor: '#8b5cf6',
+      }}
     >
       <span className="sr-only">{label}</span>
     </span>
@@ -28,7 +30,7 @@ const Spinner = ({ size = 'md', fullPage = false, label = 'Loading…', classNam
 
   return (
     <div
-      className="flex min-h-screen w-full items-center justify-center bg-white dark:bg-gray-950"
+      className="flex min-h-screen w-full items-center justify-center bg-gray-50 dark:bg-ww-void"
       aria-busy="true"
     >
       {ring}

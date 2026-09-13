@@ -77,11 +77,14 @@ const MessagesList = forwardRef(
       typingUsers = [],
       showReadReceipts = true,
       highlightMessageId = null,
+      jumpMessageId = null,
       onReply,
       onEdit,
       onDelete,
       onReact,
       onRetry,
+      onTogglePin,
+      onToggleStar,
     },
     ref,
   ) => {
@@ -184,11 +187,16 @@ const MessagesList = forwardRef(
     }, []);
 
     useEffect(() => {
-      if (!highlightMessageId) return;
-      const node = bubbleRefsMapRef.current.get(String(highlightMessageId));
-      if (!node) return;
-      node.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, [highlightMessageId]);
+      const targetId = jumpMessageId || highlightMessageId;
+      if (!targetId) return;
+      // Use a timeout to ensure DOM is updated after messages change
+      const timer = setTimeout(() => {
+        const node = bubbleRefsMapRef.current.get(String(targetId));
+        if (!node) return;
+        node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+      return () => clearTimeout(timer);
+    }, [highlightMessageId, jumpMessageId, messages]);
 
     useImperativeHandle(
       ref,
@@ -239,7 +247,7 @@ const MessagesList = forwardRef(
         <div
           ref={containerRef}
           onScroll={handleScroll}
-          className="scrollbar-thin flex-1 overflow-y-auto bg-gray-50 px-2 pt-3 pb-8 md:pb-4 dark:bg-gray-950"
+          className="scrollbar-thin flex-1 overflow-y-auto px-2 pt-3 pb-8 md:pb-4 bg-[#f8f7ff] dark:bg-ww-void"
         >
           {showEmptyState ? (
             <div className="flex h-full items-center justify-center px-4 py-8">
@@ -311,11 +319,17 @@ const MessagesList = forwardRef(
                         highlightMessageId &&
                         String(message._id) === String(highlightMessageId)
                       }
+                      isBlinking={
+                        jumpMessageId &&
+                        String(message._id) === String(jumpMessageId)
+                      }
                       onReply={onReply}
                       onEdit={onEdit}
                       onDelete={onDelete}
                       onReact={onReact}
                       onRetry={onRetry}
+                      onTogglePin={onTogglePin}
+                      onToggleStar={onToggleStar}
                     />
                   </li>
                 </Fragment>

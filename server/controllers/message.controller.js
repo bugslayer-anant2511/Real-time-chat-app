@@ -7,6 +7,11 @@ import {
   deleteMessage,
   toggleReaction,
   searchMessages,
+  togglePinMessage,
+  toggleStarMessage,
+  getStarredMessages,
+  getScheduledMessages,
+  cancelScheduledMessage,
 } from '../utils/messageService.js';
 import { MESSAGE_TYPES } from '../utils/constants.js';
 import { safeDestroy } from '../config/cloudinary.js';
@@ -41,6 +46,7 @@ export const sendMessage = asyncHandler(async (req, res) => {
     imageUrl = '',
     imagePublicId = '',
     replyTo = null,
+    scheduledFor = null,
   } = req.body;
 
   const message = await createMessage({
@@ -51,19 +57,46 @@ export const sendMessage = asyncHandler(async (req, res) => {
     imageUrl,
     imagePublicId,
     replyTo,
+    scheduledFor,
   });
 
-  const io = req.app.get('io');
-  if (io) {
-    try {
-      const msgSocket = await import('../sockets/message.socket.js');
-      if (msgSocket?.broadcastNewMessage) {
-        msgSocket.broadcastNewMessage(io, { message }).catch(() => {});
-      }
-    } catch (err) {}
+  if (message.status !== 'scheduled') {
+    const io = req.app.get('io');
+    if (io) {
+      try {
+        const msgSocket = await import('../sockets/message.socket.js');
+        if (msgSocket?.broadcastNewMessage) {
+          msgSocket.broadcastNewMessage(io, { message }).catch(() => {});
+        }
+      } catch (err) {}
+    }
   }
 
   res.status(201).json({ success: true, data: serializeMessage(message) });
+});
+
+// GET /api/messages/scheduled
+export const getScheduledMessagesController = asyncHandler(async (req, res) => {
+  const { conversationId } = req.query;
+  const { items, total } = await getScheduledMessages({
+    userId: req.user._id,
+    conversationId,
+  });
+
+  res.status(200).json({
+    success: true,
+    data: { items: items.map(serializeMessage), total },
+  });
+});
+
+// DELETE /api/messages/scheduled/:id
+export const cancelScheduledMessageController = asyncHandler(async (req, res) => {
+  await cancelScheduledMessage({
+    messageId: req.params.id,
+    userId: req.user._id,
+  });
+
+  res.status(200).json({ success: true, message: 'Scheduled message cancelled' });
 });
 
 // PATCH /api/messages/:id
@@ -184,6 +217,58 @@ export const searchMessagesController = asyncHandler(async (req, res) => {
     userId: req.user._id,
     q,
     limit: limit ?? 30,
+  });
+
+  res.status(200).json({
+    success: true,
+    data: { items: items.map(serializeMessage), total },
+  });
+});
+
+// POST /api/messages/:id/pin
+export const togglePinMessageEndpoint = asyncHandler(async (req, res) => {
+  const message = await togglePinMessage({
+    messageId: req.params.id,
+    userId: req.user._id,
+  });
+
+  const io = req.app.get('io');
+  if (io) {
+    try {
+      const socketsModule = await import('../sockets/message.socket.js');
+      if (socketsModule?.broadcastMessageUpdate) {
+        socketsModule.broadcastMessageUpdate(io, { message });
+      }
+    } catch (err) {}
+  }
+
+  res.status(200).json({
+    success: true,
+    message: 'Message pin toggled',
+    data: serializeMessage(message),
+  });
+});
+
+// POST /api/messages/:id/star
+export const toggleStarMessageEndpoint = asyncHandler(async (req, res) => {
+  const message = await toggleStarMessage({
+    messageId: req.params.id,
+    userId: req.user._id,
+  });
+
+  res.status(200).json({
+    success: true,
+    message: 'Message star toggled',
+    data: serializeMessage(message),
+  });
+});
+
+// GET /api/messages/starred
+export const getStarredMessagesEndpoint = asyncHandler(async (req, res) => {
+  const { conversationId } = req.query;
+  const { items, total } = await getStarredMessages({
+    userId: req.user._id,
+    conversationId,
   });
 
   res.status(200).json({

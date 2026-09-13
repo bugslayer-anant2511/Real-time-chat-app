@@ -58,7 +58,8 @@ const ConnectionStrip = () => {
       <div
         role="alert"
         aria-live="assertive"
-        className="flex shrink-0 items-center justify-center gap-2 bg-red-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm dark:bg-red-700"
+        className="flex shrink-0 items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium text-white shadow-sm"
+        style={{ background: 'rgba(244,63,94,0.90)' }}
       >
         <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
         <span>Disconnected — your messages may not send.</span>
@@ -72,7 +73,8 @@ const ConnectionStrip = () => {
     <div
       role="status"
       aria-live="polite"
-      className="flex shrink-0 items-center justify-center gap-2 bg-amber-500 px-3 py-1.5 text-xs font-medium text-white shadow-sm dark:bg-amber-600"
+      className="flex shrink-0 items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium text-white shadow-sm"
+      style={{ background: 'rgba(245,158,11,0.85)' }}
     >
       <WifiOff className="h-3.5 w-3.5 animate-pulse" aria-hidden="true" />
       <span>Reconnecting…</span>
@@ -115,7 +117,7 @@ const ChatLayout = () => {
   return (
     <ChatStateProvider>
       <div
-        className="flex w-full flex-col overflow-hidden bg-gray-50 dark:bg-gray-950"
+        className="flex w-full flex-col overflow-hidden bg-gray-50 dark:bg-ww-void"
         style={{
           height: 'var(--visual-viewport-height, 100vh)',
           transform: 'translateY(var(--visual-viewport-offset, 0px))',

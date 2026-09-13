@@ -118,7 +118,8 @@ const Modal = ({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-gray-900/60 px-3 py-4 backdrop-blur-sm sm:items-center sm:px-4 sm:py-6"
+      className="fixed inset-0 z-50 flex items-end justify-center px-3 py-4 sm:items-center sm:px-4 sm:py-6"
+      style={{ background: 'rgba(0,0,0,0.70)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
       onMouseDown={handleBackdropClick}
       onKeyDown={handleKeyDown}
       role="presentation"
@@ -131,28 +132,29 @@ const Modal = ({
         aria-describedby={description ? descriptionId : undefined}
         tabIndex={-1}
         className={clsx(
-          'relative flex max-h-full w-full flex-col overflow-hidden rounded-2xl bg-white shadow-xl outline-none',
-          'dark:bg-gray-900 dark:ring-1 dark:ring-white/10',
+          'relative flex max-h-full w-full flex-col overflow-hidden rounded-2xl outline-none ww-scale-in',
+          'bg-white/95 dark:bg-[#16162a]/95 backdrop-blur-xl border border-[rgba(124,58,237,0.22)] shadow-xl dark:shadow-[0_24px_60px_rgba(0,0,0,0.6),0_0_40px_rgba(124,58,237,0.10)]',
           SIZE_MAP[size] ?? SIZE_MAP.md,
           panelClassName,
         )}
       >
         {(title || !hideCloseButton) && (
-          <header className="flex items-start justify-between gap-3 border-b border-gray-200 px-5 py-4 dark:border-gray-800">
+          <header
+            className="flex items-start justify-between gap-3 px-5 py-4"
+            style={{ borderBottom: '1px solid rgba(124,58,237,0.15)' }}
+          >
             <div className="min-w-0">
               {title ? (
                 <h2
                   id={titleId}
-                  className="truncate text-base font-semibold text-gray-900 dark:text-white"
+                  className="truncate text-base font-bold text-gray-900 dark:text-white"
+                  style={{ fontFamily: "'Plus Jakarta Sans', Inter, sans-serif" }}
                 >
                   {title}
                 </h2>
               ) : null}
               {description ? (
-                <p
-                  id={descriptionId}
-                  className="mt-1 text-xs text-gray-500 dark:text-gray-400"
-                >
+                <p id={descriptionId} className="mt-1 text-xs text-gray-500 dark:text-[#9090b8]">
                   {description}
                 </p>
               ) : null}
@@ -162,7 +164,10 @@ const Modal = ({
                 type="button"
                 onClick={onClose}
                 aria-label="Close dialog"
-                className="-m-1 rounded-md p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+                className="-m-1 rounded-lg p-1 transition-colors"
+                style={{ color: '#6b6b8a' }}
+                onMouseEnter={e => { e.currentTarget.style.color = '#a78bfa'; e.currentTarget.style.background = 'rgba(124,58,237,0.12)'; }}
+                onMouseLeave={e => { e.currentTarget.style.color = '#6b6b8a'; e.currentTarget.style.background = ''; }}
               >
                 <X className="h-4 w-4" aria-hidden="true" />
               </button>
@@ -173,7 +178,10 @@ const Modal = ({
         <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto">{children}</div>
 
         {footer ? (
-          <footer className="flex items-center justify-end gap-2 border-t border-gray-200 bg-gray-50/60 px-5 py-3 dark:border-gray-800 dark:bg-gray-900/60">
+          <footer
+            className="flex items-center justify-end gap-2 px-5 py-3 bg-gray-50/60 dark:bg-[#16162a]/60"
+            style={{ borderTop: '1px solid rgba(124,58,237,0.15)' }}
+          >
             {footer}
           </footer>
         ) : null}

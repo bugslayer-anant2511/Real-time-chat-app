@@ -15,6 +15,7 @@ import RegisterPage from './pages/auth/RegisterPage.jsx';
 
 import ChatPage from './pages/chat/ChatPage.jsx';
 import EmptyChatPage from './pages/chat/EmptyChatPage.jsx';
+import StarredMessagesPage from './pages/chat/StarredMessagesPage.jsx';
 
 import ProfilePage from './pages/profile/ProfilePage.jsx';
 
@@ -51,6 +52,7 @@ const App = () => {
       <Route element={<ProtectedRoute />}>
         <Route element={<ChatLayout />}>
           <Route path="/chat" element={<EmptyChatPage />} />
+          <Route path="/chat/starred" element={<StarredMessagesPage />} />
           <Route path="/chat/:conversationId" element={<ChatPage />} />
         </Route>
 

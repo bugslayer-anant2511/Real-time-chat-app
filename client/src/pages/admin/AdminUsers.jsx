@@ -281,7 +281,7 @@ const AdminUsers = () => {
             aria-hidden="true"
           />
           <input
-            type="search"
+            type="text"
             value={filters.q}
             onChange={(event) =>
               setFilters((prev) => ({ ...prev, q: event.target.value }))

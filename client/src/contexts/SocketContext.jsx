@@ -79,7 +79,14 @@ export const SocketProvider = ({ children }) => {
       transports: ['websocket'],
       reconnectionAttempts: 5,
       reconnectionDelay: 2000,
+      autoConnect: false,
     });
+
+    // Delay connection slightly to prevent React StrictMode from immediately 
+    // disconnecting the socket while it's in the middle of connecting.
+    const connectTimer = setTimeout(() => {
+      instance.connect();
+    }, 50);
 
     instance.on('connect', () => {
       setIsConnected(true);
@@ -154,6 +161,7 @@ export const SocketProvider = ({ children }) => {
     setSocket(instance);
 
     return () => {
+      clearTimeout(connectTimer);
       instance.removeAllListeners();
       instance.disconnect();
       setSocket(null);

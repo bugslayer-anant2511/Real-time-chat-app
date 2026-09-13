@@ -66,10 +66,29 @@ export const NOTIFICATION_SOUND_URL = '/notification-sound.mp3';
 
 export const NOTIFICATION_BUFFER_SIZE = 20;
 
-export const BACKEND_URL =
-  import.meta.env.VITE_BACKEND_URL ||
-  import.meta.env.VITE_SERVER_URL ||
-  'http://localhost:5001';
+const getDynamicBackendUrl = () => {
+  if (import.meta.env.VITE_BACKEND_URL) return import.meta.env.VITE_BACKEND_URL;
+  if (import.meta.env.VITE_SERVER_URL) return import.meta.env.VITE_SERVER_URL;
+
+  // Dynamically resolve backend for local dev if env vars are missing
+  if (typeof window !== 'undefined') {
+    const { protocol, hostname } = window.location;
+    // If it's a local development IP or localhost, assume the backend is on port 5001
+    if (
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname.startsWith('192.168.') ||
+      hostname.startsWith('10.') ||
+      hostname.startsWith('172.')
+    ) {
+      return `${protocol}//${hostname}:5001`;
+    }
+  }
+
+  return 'http://localhost:5001';
+};
+
+export const BACKEND_URL = getDynamicBackendUrl();
 
 export const API_BASE_URL =
   import.meta.env.VITE_API_URL ||

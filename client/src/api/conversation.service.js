@@ -68,3 +68,13 @@ export const getUnreadSummary = async () => {
   const { data } = await api.get('/conversations/unread-summary');
   return data;
 };
+
+export const acceptFriendRequest = async (id) => {
+  const { data } = await api.post(`/conversations/${id}/accept`);
+  return data;
+};
+
+export const togglePinConversation = async (id) => {
+  const { data } = await api.post(`/conversations/${id}/pin`);
+  return data;
+};

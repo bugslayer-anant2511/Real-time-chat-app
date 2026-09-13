@@ -14,6 +14,7 @@ import {
   UserPlus,
   Users,
   X,
+  Star,
 } from 'lucide-react';
 
 import { useAuth } from '../../contexts/AuthContext.jsx';
@@ -134,12 +135,24 @@ const Sidebar = () => {
   }, [activeTab]);
 
   const visibleConversations = useMemo(() => {
-    if (activeTab === 'archived') return archivedConversations;
-    if (activeTab === 'unread') {
-      return conversations.filter((c) => Number(c.unreadCount) > 0);
+    let filtered = conversations;
+    if (activeTab === 'archived') {
+      filtered = archivedConversations;
+    } else if (activeTab === 'unread') {
+      filtered = conversations.filter((c) => Number(c.unreadCount) > 0);
     }
-    return conversations;
-  }, [activeTab, archivedConversations, conversations]);
+    
+    return [...filtered].sort((a, b) => {
+      const aPinned = a.pinnedBy?.includes(currentUserId);
+      const bPinned = b.pinnedBy?.includes(currentUserId);
+      if (aPinned && !bPinned) return -1;
+      if (!aPinned && bPinned) return 1;
+      
+      const aTime = new Date(a.updatedAt || a.createdAt).getTime();
+      const bTime = new Date(b.updatedAt || b.createdAt).getTime();
+      return bTime - aTime;
+    });
+  }, [activeTab, archivedConversations, conversations, currentUserId]);
 
   const [newMenuOpen, setNewMenuOpen] = useState(false);
   const newMenuRef = useRef(null);
@@ -249,6 +262,15 @@ const Sidebar = () => {
     [resetUnread],
   );
 
+  const handleTogglePin = useCallback(async (conversationId) => {
+    try {
+      const result = await conversationService.togglePinConversation(conversationId);
+      upsertConversation(result?.data);
+    } catch (err) {
+      toast.error('Failed to toggle pin');
+    }
+  }, [upsertConversation]);
+
   const handleSearchResultClick = useCallback(
     async (target) => {
       if (!target?._id || creatingDirectId) return;
@@ -305,7 +327,9 @@ const Sidebar = () => {
                   type="button"
                   disabled={Boolean(creatingDirectId)}
                   onClick={() => handleSearchResultClick(target)}
-                  className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-gray-100 disabled:opacity-60 dark:hover:bg-gray-800"
+                  className="flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-all duration-200 disabled:opacity-60"
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(124,58,237,0.12)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = ''; }}
                 >
                   <span className="relative shrink-0">
                     <Avatar
@@ -320,25 +344,19 @@ const Sidebar = () => {
                     ) : null}
                   </span>
                   <span className="flex min-w-0 flex-1 flex-col">
-                    <span className="truncate text-sm font-medium text-gray-900 dark:text-white">
+                    <span className="truncate text-sm font-medium" style={{ color: '#e2e2f0' }}>
                       {target.displayName || target.username}
                     </span>
                     {target.username ? (
-                      <span className="truncate text-xs text-gray-500 dark:text-gray-400">
+                      <span className="truncate text-xs" style={{ color: '#6b6b8a' }}>
                         @{target.username}
                       </span>
                     ) : null}
                   </span>
                   {isCreating ? (
-                    <Loader2
-                      className="h-4 w-4 animate-spin text-gray-400"
-                      aria-label="Opening chat"
-                    />
+                    <Loader2 className="h-4 w-4 animate-spin" style={{ color: '#a78bfa' }} aria-label="Opening chat" />
                   ) : (
-                    <UserPlus
-                      className="h-4 w-4 text-gray-400 transition-colors group-hover:text-gray-600 dark:text-gray-500"
-                      aria-hidden="true"
-                    />
+                    <UserPlus className="h-4 w-4" style={{ color: '#6b6b8a' }} aria-hidden="true" />
                   )}
                 </button>
               </li>
@@ -359,13 +377,14 @@ const Sidebar = () => {
     if (error && conversations.length === 0) {
       return (
         <div className="px-3 py-6 text-center">
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            Couldn't load your conversations.
+          <p className="text-xs" style={{ color: '#6b6b8a' }}>
+            Couldn&apos;t load your conversations.
           </p>
           <button
             type="button"
             onClick={refreshConversations}
-            className="mt-2 text-xs font-medium text-brand-600 hover:underline dark:text-brand-300"
+            className="mt-2 text-xs font-medium hover:underline"
+            style={{ color: '#a78bfa' }}
           >
             Try again
           </button>
@@ -416,11 +435,16 @@ const Sidebar = () => {
                 to={`/chat/${conversationId}`}
                 isActive={conversationId === activeConversationId}
                 isMuted={mutedSet.has(conversationId)}
+                isPinned={conversation.pinnedBy?.includes(currentUserId)}
                 otherParticipant={other}
                 isGroup={isGroup}
                 isOnline={isOnline}
                 unreadCount={Number(conversation.unreadCount) || 0}
                 onClick={() => handleConversationClick(conversationId)}
+                onTogglePin={(e) => {
+                  e.preventDefault();
+                  handleTogglePin(conversationId);
+                }}
               />
             </li>
           );
@@ -430,20 +454,46 @@ const Sidebar = () => {
   };
 
   return (
-    <aside className="flex h-full w-full flex-col border-r border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
-      <div className="flex items-center justify-between gap-2 border-b border-gray-200 px-3 py-2.5 dark:border-gray-800">
+    <aside
+      className="flex h-full w-full flex-col bg-white dark:bg-ww-surface"
+      style={{
+        borderRight: '1px solid rgba(124,58,237,0.15)',
+      }}
+    >
+      {/* ── Header ── */}
+      <div
+        className="flex items-center justify-between gap-2 px-3 py-3"
+        style={{ borderBottom: '1px solid rgba(124,58,237,0.12)' }}
+      >
         <Link
           to="/chat"
-          className="flex items-center gap-2 text-brand-700 transition-opacity hover:opacity-80 dark:text-brand-300"
+          className="flex items-center gap-2.5 transition-opacity hover:opacity-85"
         >
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-white shadow-sm">
+          <span
+            className="flex h-8 w-8 items-center justify-center rounded-xl text-white shadow-md"
+            style={{
+              background: 'linear-gradient(135deg, #7c3aed, #ec4899)',
+              boxShadow: '0 2px 12px rgba(124,58,237,0.45)',
+            }}
+          >
             <MessageCircle className="h-4 w-4" aria-hidden="true" />
           </span>
-          <span className="text-sm font-semibold tracking-tight text-gray-900 dark:text-white">
-            Chats
+          <span
+            className="text-sm font-bold tracking-tight"
+            style={{ fontFamily: "'Plus Jakarta Sans', Inter, sans-serif" }}
+          >
+            <span style={{ background: 'linear-gradient(135deg, #8b5cf6, #ec4899)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+              Whisper
+            </span>
+            <span className="text-gray-900 dark:text-white">Wire</span>
           </span>
           {totalUnreadChats > 0 ? (
-            <Badge count={totalUnreadChats} variant="danger" className="ml-1" />
+            <span
+              className="ml-0.5 flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold text-white"
+              style={{ background: 'linear-gradient(135deg, #7c3aed, #ec4899)' }}
+            >
+              {totalUnreadChats}
+            </span>
           ) : null}
         </Link>
 
@@ -455,7 +505,13 @@ const Sidebar = () => {
                 onClick={() => setNewMenuOpen((v) => !v)}
                 aria-haspopup="menu"
                 aria-expanded={newMenuOpen}
-                className="flex items-center gap-1 rounded-md bg-brand-600 px-2 py-1.5 text-xs font-medium text-white transition-colors hover:bg-brand-700 dark:bg-brand-500 dark:hover:bg-brand-400"
+                className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-white transition-all duration-200"
+                style={{
+                  background: 'linear-gradient(135deg, #7c3aed, #ec4899)',
+                  boxShadow: '0 2px 10px rgba(124,58,237,0.40)',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 16px rgba(124,58,237,0.60)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 10px rgba(124,58,237,0.40)'; e.currentTarget.style.transform = ''; }}
               >
                 <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                 <span>New</span>
@@ -466,16 +522,22 @@ const Sidebar = () => {
             {newMenuOpen ? (
               <div
                 role="menu"
-                className="absolute right-0 z-10 mt-1 w-48 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-800 dark:bg-gray-900"
+                className="absolute right-0 z-10 mt-1.5 w-48 overflow-hidden rounded-xl"
+                style={{
+                  background: 'rgba(22,22,42,0.95)',
+                  backdropFilter: 'blur(16px)',
+                  border: '1px solid rgba(124,58,237,0.22)',
+                  boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
+                }}
               >
                 <button
                   type="button"
                   role="menuitem"
-                  onClick={() => {
-                    setNewMenuOpen(false);
-                    openNewChat();
-                  }}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-800"
+                  onClick={() => { setNewMenuOpen(false); openNewChat(); }}
+                  className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm transition-colors"
+                  style={{ color: '#c4b5fd' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(124,58,237,0.15)'; e.currentTarget.style.color = '#fff'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.color = '#c4b5fd'; }}
                 >
                   <MessageSquarePlus className="h-4 w-4" aria-hidden="true" />
                   <span>New chat</span>
@@ -483,11 +545,11 @@ const Sidebar = () => {
                 <button
                   type="button"
                   role="menuitem"
-                  onClick={() => {
-                    setNewMenuOpen(false);
-                    openNewGroup();
-                  }}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-800"
+                  onClick={() => { setNewMenuOpen(false); openNewGroup(); }}
+                  className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm transition-colors"
+                  style={{ color: '#c4b5fd' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(124,58,237,0.15)'; e.currentTarget.style.color = '#fff'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.color = '#c4b5fd'; }}
                 >
                   <Users className="h-4 w-4" aria-hidden="true" />
                   <span>New group</span>
@@ -496,11 +558,26 @@ const Sidebar = () => {
             ) : null}
           </div>
 
+          <Tooltip content="Starred Messages" position="left">
+            <Link
+              to="/chat/starred"
+              aria-label="Starred Messages"
+              className="rounded-lg p-1.5 transition-colors"
+              style={{ color: '#6b6b8a' }}
+              onMouseEnter={e => { e.currentTarget.style.color = '#eab308'; e.currentTarget.style.background = 'rgba(234,179,8,0.12)'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = '#6b6b8a'; e.currentTarget.style.background = ''; }}
+            >
+              <Star className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          </Tooltip>
           <Tooltip content="Settings" position="left">
             <Link
               to="/settings"
               aria-label="Settings"
-              className="rounded-md p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
+              className="rounded-lg p-1.5 transition-colors"
+              style={{ color: '#6b6b8a' }}
+              onMouseEnter={e => { e.currentTarget.style.color = '#a78bfa'; e.currentTarget.style.background = 'rgba(124,58,237,0.12)'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = '#6b6b8a'; e.currentTarget.style.background = ''; }}
             >
               <SettingsIcon className="h-4 w-4" aria-hidden="true" />
             </Link>
@@ -508,23 +585,19 @@ const Sidebar = () => {
         </div>
       </div>
 
-      <div className="px-3 py-2">
+      {/* ── Search ── */}
+      <div className="px-3 py-2.5">
         <label className="relative block">
           <span className="sr-only">Search users</span>
-          <div className="absolute top-1/2 left-2.5 -translate-y-1/2">
-            <Tooltip content="Search" position="right">
-              <Search
-                className="h-4 w-4 text-gray-400"
-                aria-hidden="true"
-              />
-            </Tooltip>
+          <div className="absolute top-1/2 left-3 -translate-y-1/2">
+            <Search className="h-4 w-4" style={{ color: '#6b6b8a' }} aria-hidden="true" />
           </div>
           <input
-            type="search"
+            type="text"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search users by name or @username…"
-            className="w-full rounded-md border border-gray-200 bg-gray-50 py-1.5 pr-8 pl-8 text-sm text-gray-900 placeholder-gray-400 focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:focus:bg-gray-900"
+            placeholder="Search users…"
+            className="w-full rounded-xl py-2 pr-8 pl-9 text-sm transition-all duration-200 outline-none text-gray-900 dark:text-[#e2e2f0] bg-[rgba(124,58,237,0.04)] dark:bg-[rgba(255,255,255,0.05)] border border-[rgba(124,58,237,0.18)] focus:border-[rgba(124,58,237,0.55)] focus:ring-[3px] focus:ring-[rgba(124,58,237,0.10)] focus:bg-white dark:focus:bg-[rgba(255,255,255,0.08)] placeholder:text-gray-400 dark:placeholder:text-[#6b6b8a]"
             aria-label="Search users"
           />
           {query ? (
@@ -532,7 +605,10 @@ const Sidebar = () => {
               type="button"
               onClick={clearSearch}
               aria-label="Clear search"
-              className="absolute top-1/2 right-1.5 -translate-y-1/2 rounded p-0.5 text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+              className="absolute top-1/2 right-2 -translate-y-1/2 rounded-md p-0.5 transition-colors"
+              style={{ color: '#6b6b8a' }}
+              onMouseEnter={e => { e.currentTarget.style.color = '#a78bfa'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = '#6b6b8a'; }}
             >
               <X className="h-3.5 w-3.5" aria-hidden="true" />
             </button>
@@ -544,7 +620,8 @@ const Sidebar = () => {
         <div
           role="tablist"
           aria-label="Conversation filter"
-          className="flex items-center gap-1 border-b border-gray-200 px-3 pb-2 dark:border-gray-800"
+          className="flex items-center gap-1 px-3 pb-2.5"
+          style={{ borderBottom: '1px solid rgba(124,58,237,0.10)' }}
         >
           {TABS.map((tab) => {
             const isActive = activeTab === tab.id;
@@ -556,10 +633,10 @@ const Sidebar = () => {
                 aria-selected={isActive}
                 onClick={() => setActiveTab(tab.id)}
                 className={clsx(
-                  'rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
+                  "rounded-lg px-3 py-1 text-xs font-semibold transition-all duration-200",
                   isActive
-                    ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-200'
-                    : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white',
+                    ? "text-white shadow-md ww-gradient-bg"
+                    : "text-gray-600 dark:text-[#6b6b8a] hover:text-brand-600 dark:hover:text-[#a78bfa] hover:bg-brand-50 dark:hover:bg-[rgba(124,58,237,0.10)]"
                 )}
               >
                 {tab.label}
@@ -573,17 +650,23 @@ const Sidebar = () => {
         {renderListBody()}
       </div>
 
-      <div className="flex items-center gap-2 border-t border-gray-200 px-3 py-2 dark:border-gray-800">
+      {/* ── User Strip ── */}
+      <div
+        className="flex items-center gap-2 px-3 py-2.5"
+        style={{ borderTop: '1px solid rgba(124,58,237,0.12)' }}
+      >
         <Link
           to={user?.username ? `/u/${user.username}` : '/settings/profile'}
-          className="flex min-w-0 flex-1 items-center gap-2 rounded-md p-1 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
+          className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl p-1.5 transition-colors"
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(124,58,237,0.10)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = ''; }}
         >
           <Avatar
             src={user?.avatarUrl}
             name={user?.displayName || user?.username}
             size="sm"
           />
-          <span className="min-w-0 truncate text-sm font-medium text-gray-800 dark:text-gray-100">
+          <span className="min-w-0 truncate text-sm font-medium text-gray-900 dark:text-[#e2e2f0]">
             {user?.displayName || user?.username || 'You'}
           </span>
         </Link>
@@ -591,7 +674,10 @@ const Sidebar = () => {
           type="button"
           onClick={() => logout()}
           aria-label="Log out"
-          className="rounded-md p-1.5 text-gray-500 transition-colors hover:bg-red-50 hover:text-red-600 dark:text-gray-400 dark:hover:bg-red-950/30 dark:hover:text-red-400"
+          className="rounded-lg p-1.5 transition-colors"
+          style={{ color: '#6b6b8a' }}
+          onMouseEnter={e => { e.currentTarget.style.color = '#fb7185'; e.currentTarget.style.background = 'rgba(244,63,94,0.10)'; }}
+          onMouseLeave={e => { e.currentTarget.style.color = '#6b6b8a'; e.currentTarget.style.background = ''; }}
         >
           <LogOut className="h-4 w-4" aria-hidden="true" />
         </button>

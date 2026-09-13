@@ -88,29 +88,24 @@ const LoginPage = () => {
 
   const inputClass = (fieldKey) =>
     [
-      'w-full rounded-lg border bg-white px-3 py-2 text-sm text-gray-900 shadow-sm',
-      'placeholder:text-gray-400 transition-colors',
-      'focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500',
-      'dark:bg-gray-950 dark:text-gray-100 dark:placeholder:text-gray-500',
+      'ww-input',
       fieldErrors[fieldKey]
-        ? 'border-red-400 dark:border-red-500'
-        : 'border-gray-300 dark:border-gray-700',
+        ? '!border-rose-500/70 !ring-rose-500/20'
+        : '',
     ].join(' ');
 
   return (
     <div>
       <header className="mb-6 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
+        <h1
+          className="text-2xl font-bold tracking-tight text-white"
+          style={{ fontFamily: "'Plus Jakarta Sans', Inter, sans-serif" }}
+        >
           Welcome back
         </h1>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+        <p className="mt-1 text-sm" style={{ color: '#9090b8' }}>
           Sign in to continue your conversations
         </p>
-        {redirectHint ? (
-          <p className="mt-2 text-xs text-brand-600 dark:text-brand-300">
-            You'll be returned to <code className="font-mono">{redirectHint}</code>
-          </p>
-        ) : null}
       </header>
 
       <form
@@ -123,14 +118,19 @@ const LoginPage = () => {
           <div
             id={formErrorId}
             role="alert"
-            className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300"
+            className="rounded-xl px-4 py-3 text-sm"
+            style={{
+              background: 'rgba(244,63,94,0.10)',
+              border: '1px solid rgba(244,63,94,0.30)',
+              color: '#fda4af',
+            }}
           >
             <p>{formError}</p>
-            <p className="mt-1.5 text-xs text-red-600 dark:text-red-400">
+            <p className="mt-1.5 text-xs" style={{ color: '#fb7185' }}>
               Need help?{' '}
               <a
                 href="mailto:anantsingh2511@gmail.com"
-                className="font-semibold underline hover:text-red-800 dark:hover:text-red-200"
+                className="font-semibold underline hover:opacity-80"
               >
                 Contact Administrator
               </a>
@@ -141,7 +141,8 @@ const LoginPage = () => {
         <div className="space-y-1.5">
           <label
             htmlFor={emailId}
-            className="block text-sm font-medium text-gray-800 dark:text-gray-200"
+            className="block text-sm font-medium"
+            style={{ color: '#c4b5fd' }}
           >
             Email or Username
           </label>
@@ -162,11 +163,12 @@ const LoginPage = () => {
               aria-invalid={Boolean(fieldErrors.email)}
               aria-describedby={fieldErrors.email ? `${emailId}-err` : undefined}
               placeholder="you@example.com or username"
-              className={`${inputClass('email')} pl-9`}
+              className={`${inputClass('email')}`}
+              style={{ paddingLeft: '2.5rem' }}
             />
           </div>
           {fieldErrors.email ? (
-            <p id={`${emailId}-err`} className="text-xs text-red-600 dark:text-red-400">
+            <p id={`${emailId}-err`} className="text-xs" style={{ color: '#fb7185' }}>
               {fieldErrors.email}
             </p>
           ) : null}
@@ -175,7 +177,8 @@ const LoginPage = () => {
         <div className="space-y-1.5">
           <label
             htmlFor={passwordId}
-            className="block text-sm font-medium text-gray-800 dark:text-gray-200"
+            className="block text-sm font-medium"
+            style={{ color: '#c4b5fd' }}
           >
             Password
           </label>
@@ -199,7 +202,10 @@ const LoginPage = () => {
               onClick={() => setShowPassword((v) => !v)}
               aria-label={showPassword ? 'Hide password' : 'Show password'}
               aria-pressed={showPassword}
-              className="absolute inset-y-0 right-2 flex items-center rounded-md px-1.5 text-gray-500 transition-colors hover:text-gray-800 focus-visible:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+              className="absolute inset-y-0 right-2 flex items-center rounded-md px-1.5 transition-colors"
+              style={{ color: '#6b6b8a' }}
+              onMouseEnter={e => { e.currentTarget.style.color = '#a78bfa'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = '#6b6b8a'; }}
             >
               {showPassword ? (
                 <EyeOff className="h-4 w-4" aria-hidden="true" />
@@ -209,7 +215,7 @@ const LoginPage = () => {
             </button>
           </div>
           {fieldErrors.password ? (
-            <p id={`${passwordId}-err`} className="text-xs text-red-600 dark:text-red-400">
+            <p id={`${passwordId}-err`} className="text-xs" style={{ color: '#fb7185' }}>
               {fieldErrors.password}
             </p>
           ) : null}
@@ -218,7 +224,13 @@ const LoginPage = () => {
         <button
           type="submit"
           disabled={submitting}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700 focus-visible:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-70"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60 ww-shimmer"
+          style={{
+            background: 'linear-gradient(135deg, #7c3aed, #ec4899)',
+            boxShadow: '0 4px 20px rgba(124,58,237,0.40)',
+          }}
+          onMouseEnter={e => { if (!submitting) { e.currentTarget.style.boxShadow = '0 6px 28px rgba(124,58,237,0.60)'; e.currentTarget.style.transform = 'translateY(-1px)'; } }}
+          onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 4px 20px rgba(124,58,237,0.40)'; e.currentTarget.style.transform = ''; }}
         >
           {submitting ? (
             <>
@@ -234,12 +246,13 @@ const LoginPage = () => {
         </button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
+      <p className="mt-6 text-center text-sm" style={{ color: '#9090b8' }}>
         New here?{' '}
         <Link
           to={ROUTES.REGISTER}
           state={location.state}
-          className="font-medium text-brand-700 hover:underline dark:text-brand-300"
+          className="font-semibold hover:underline"
+          style={{ color: '#a78bfa' }}
         >
           Create an account
         </Link>

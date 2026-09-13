@@ -143,5 +143,50 @@ export const detachUserFromConversations = async (userId) => {
   );
 };
 
+export const togglePinConversation = async (conversationId, userId) => {
+  const cid = toIdString(conversationId);
+  const uid = toIdString(userId);
+  if (!cid || !isValidObjectId(cid)) throw ApiError.badRequest('Invalid conversation id');
+  if (!uid || !isValidObjectId(uid)) throw ApiError.badRequest('Invalid user id');
+
+  const conversation = await Conversation.findById(cid);
+  if (!conversation) throw ApiError.notFound('Conversation not found');
+  assertParticipant(conversation, uid);
+
+  const pinIndex = conversation.pinnedBy.findIndex((id) => String(id) === uid);
+  if (pinIndex === -1) {
+    conversation.pinnedBy.push(uid);
+  } else {
+    conversation.pinnedBy.splice(pinIndex, 1);
+  }
+  await conversation.save();
+
+  return conversation;
+};
+
+export const acceptFriendRequest = async (conversationId, userId) => {
+  const cid = toIdString(conversationId);
+  const uid = toIdString(userId);
+  if (!cid || !isValidObjectId(cid)) throw ApiError.badRequest('Invalid conversation id');
+  if (!uid || !isValidObjectId(uid)) throw ApiError.badRequest('Invalid user id');
+
+  const conversation = await Conversation.findById(cid);
+  if (!conversation) throw ApiError.notFound('Conversation not found');
+  assertParticipant(conversation, uid);
+
+  if (conversation.type !== CONVERSATION_TYPES.DIRECT) {
+    throw ApiError.badRequest('Only direct conversations can be accepted');
+  }
+
+  if (String(conversation.createdBy) === uid) {
+    throw ApiError.badRequest('The initiator cannot accept their own request');
+  }
+
+  conversation.isAccepted = true;
+  await conversation.save();
+
+  return conversation;
+};
+
 export const _internals = { toIdString, isValidObjectId };
 export default findOrCreateDirectConversation;

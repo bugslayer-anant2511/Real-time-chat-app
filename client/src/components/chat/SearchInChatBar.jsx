@@ -65,7 +65,7 @@ const SearchInChatBar = ({
         <input
           ref={inputRef}
           id={inputId}
-          type="search"
+          type="text"
           autoComplete="off"
           spellCheck={false}
           value={query}
